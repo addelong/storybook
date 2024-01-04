@@ -1,6 +1,15 @@
 import subprocess
 import os
 import math
+import re
+
+def extract_number(filename):
+    """
+    Extracts the number from the filename that follows an underscore,
+    using regular expressions.
+    """
+    match = re.search(r'_(\d+)', filename)
+    return int(match.group(1)) if match else 0
 
 def create_video_from_images_and_dialogs(images_directory, image_extension, background_music, dialog_directory, dialog_extension, output_video):
 
@@ -8,8 +17,11 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
     temp_concat_file = "concat_list.txt"
     temp_music_file = "temp_music.mp3"
 
-    image_files = sorted([f for f in os.listdir(images_directory) if f.endswith(image_extension)])
-    dialog_files = sorted([f for f in os.listdir(dialog_directory) if f.endswith(dialog_extension)])
+    image_files = sorted([f for f in os.listdir(images_directory) if f.endswith(image_extension)],
+                        key=extract_number)
+
+    dialog_files = sorted([f for f in os.listdir(dialog_directory) if f.endswith(dialog_extension)],
+                        key=extract_number)
 
     if len(image_files) != len(dialog_files):
         raise ValueError("Mismatch in the number of images and dialog files")
@@ -66,7 +78,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-stream_loop", str(num_loops),
         "-i", background_music,
         "-t", video_duration,
-        "-filter_complex", f"[0:a]volume=0.5,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
+        "-filter_complex", f"[0:a]volume=0.2,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
         "-map", "[a]",
         "-y", temp_music_file
     ])

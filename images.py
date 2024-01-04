@@ -33,13 +33,14 @@ async def generate_image(session, text_chunk):
         "width": 1344,
         "height": 768,
         "style-preset": "digital-art",
+        "cfg_scale": 10,
         "text_prompts": [
             {
-            "text": "children's book illustration, color, " + text_chunk,
+            "text": "children's book, high quality, 3d render, digitally animated movie still, digital art, color, " + text_chunk,
             "weight": 1
             },
             {
-            "text": "blurry, bad, sloppy",
+            "text": "blurry, bad, sloppy, weird, low quality, dogs, dinosaurs",
             "weight": -1
             }
         ],
