@@ -63,7 +63,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-c:a", "aac",
             "-strict", "experimental",
             "-t", str(segment_duration),  # Updated duration
-            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.05':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={fade_in_duration}",
+            "-vf", f"scale=2304:4032, zoompan=z='1+on/{segment_frames}*0.05':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=768x1344, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={fade_in_duration}",
             "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio
             "-y", segment_file
         ])
@@ -102,13 +102,13 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "ffmpeg",
         "-i", temp_video_file,
         "-i", temp_music_file,
-        "-filter_complex", "[1:a]volume=0.3[a1]; [0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[a]",
+        "-filter_complex", "[1:a]volume=0.4[a1]; [0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[a]",
         "-map", "0:v",
         "-map", "[a]",
         "-c:v", "copy",
         "-c:a", "aac",
         "-shortest",
-        "-y", temp_video_file_with_audio
+        "-y", output_video
     ])
 
     # Concatenate prepend video clip and the generated video
@@ -116,19 +116,19 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
     #     concat_file.write(f"file '{prepend_video_clip}'\n")
     #     concat_file.write(f"file '{temp_video_file_with_audio}'\n")
 
-    subprocess.call([
-        "ffmpeg",
-        "-i", prepend_video_clip,
-        "-i", temp_video_file_with_audio,
-        "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]",
-        "-map", "[v]",
-        "-map", "[a]",
-        "-c:v", "libx264",  # You might adjust this depending on your needs
-        "-c:a", "aac",      # AAC is a widely compatible audio codec
-        "-strict", "experimental",
-        "-r", "30",         # This sets the frame rate to 24 frames per second
-        "-y", output_video
-    ])
+    # subprocess.call([
+    #     "ffmpeg",
+    #     "-i", prepend_video_clip,
+    #     "-i", temp_video_file_with_audio,
+    #     "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]",
+    #     "-map", "[v]",
+    #     "-map", "[a]",
+    #     "-c:v", "libx264",  # You might adjust this depending on your needs
+    #     "-c:a", "aac",      # AAC is a widely compatible audio codec
+    #     "-strict", "experimental",
+    #     "-r", "30",         # This sets the frame rate to 24 frames per second
+    #     "-y", output_video
+    # ])
 
     # Clean up temporary files
     os.remove(temp_video_file)

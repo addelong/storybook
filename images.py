@@ -30,17 +30,17 @@ async def generate_images(text_chunks):
 
 async def generate_image(session, text_chunk):
     body = {
-        "width": 1344,
-        "height": 768,
+        "width": 768,
+        "height": 1344,
         "style-preset": "digital-art",
-        "cfg_scale": 10,
+        "cfg_scale": 20,
         "text_prompts": [
             {
-            "text": "children's book, high quality, 3d render, digitally animated movie still, digital art, color, " + text_chunk,
+            "text": "high quality, 3d render, digitally animated movie still, digital art, color, night time, indoors, " + text_chunk,
             "weight": 1
             },
             {
-            "text": "blurry, bad, sloppy, weird, low quality, dogs, dinosaurs",
+            "text": "blurry, bad, sloppy, weird, low quality, nonsensical, smiling",
             "weight": -1
             }
         ],
