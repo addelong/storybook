@@ -92,7 +92,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-stream_loop", str(num_loops),
         "-i", background_music,
         "-t", video_duration,
-        "-filter_complex", f"[0:a]volume=0.2,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
+        "-filter_complex", f"[0:a]volume=0.4,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
         "-map", "[a]",
         "-y", temp_music_file
     ])
@@ -102,7 +102,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "ffmpeg",
         "-i", temp_video_file,
         "-i", temp_music_file,
-        "-filter_complex", "[1:a]volume=0.3[a1]; [0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[a]",
+        "-filter_complex", "[1:a]volume=0.5[a1]; [0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[a]",
         "-map", "0:v",
         "-map", "[a]",
         "-c:v", "copy",
