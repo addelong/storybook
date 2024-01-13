@@ -8,21 +8,25 @@ import asyncio
 prompt = "Write a creative children's story that would take an average narrator about 5 minutes to read through."
 
 async def main ():
-    story = """In the mystical Willowby Wood, where the trees whispered secrets and the stars shone brighter than anywhere else, there lived a remarkably insightful fox named Felix. Felix, with his fiery red fur and emerald eyes, was not just any fox; he had the unique ability to understand the language of the wind, a gift passed down through generations of his family.
+    story = """Riley lived in a quiet neighborhood, where each house had its own charm. Her favorite spot was the big oak tree in her front yard, perfect for daydreaming and adventures.
 
-One crisp, autumn evening, as Felix was listening to the whispers of the wind, he heard a faint, urgent message unlike any he had encountered before. The wind spoke of a hidden treasure, an ancient artifact known as the Heart of the Forest, capable of preserving the beauty and magic of Willowby Wood forever. However, it was in danger of being lost to the greed of outsiders. Felix, with his keen fox instincts, knew he had to find it first.
+One windy afternoon, while playing near the tree, Riley spotted something glistening in the grass. It was a small, golden key with intricate symbols etched onto its surface. Intrigued, Riley picked it up.
 
-Setting out under the moonlit sky, Felix embarked on his quest. He traveled through the thick underbrush, his fox senses guiding him through the dark. Along the way, he met an old badger named Bernard, wise and seasoned, who shared legends of the Heart of the Forest. Bernard, with his vast knowledge, offered to accompany Felix, and together they ventured deeper into the mysterious wood.
+To her surprise, the key began to speak! "Hello, Riley," it said in a warm, friendly voice. "I'm Kay, the talking key. I've been waiting for a brave soul to find me." Riley's eyes widened in wonder. A talking key!
 
-The journey was perilous, filled with challenges that tested Felix's cunning and Bernard's wisdom. They navigated through dense fog, where Felix's sharp fox eyes spotted hidden paths. They encountered a riddle-speaking owl, whose cryptic clues Felix deciphered with his understanding of the wind's language. The deeper they went, the more the wood seemed alive, guiding and testing them.
+Kay explained that it unlocked a secret box hidden somewhere in Riley's house. Riley's heart raced with excitement at the thought of a hidden treasure. She eagerly asked, "Where can I find this box?" Kay responded, "It's closer than you think."
 
-After days of travel, Felix and Bernard arrived at a secluded glade, where a stream of moonlight illuminated a pedestal in the center. There, resting quietly, was the Heart of the Forest, a stunning gem that pulsed with a gentle, green light. Felix, with his heart pounding, carefully approached it, but as he did, a shadow loomed over the glade.
+Riley dashed into her house, Kay in hand, searching high and low. She looked in cupboards, behind books, and even in the forgotten corners of the attic. The box remained elusive, but Kay kept her spirits up.
 
-A group of outsiders, led by a cunning raven, had followed them, intent on taking the Heart for themselves. Felix, with his quick fox reflexes, sprang into action, darting between the trees and leading them on a wild chase through the wood. Bernard, using his badger strength, created obstacles to slow the intruders down. The wood itself seemed to aid them, with branches and roots hindering the raven's group at every turn.
+Then, Riley remembered an old chest in the basement, a relic from her great-grandfather's times. It was always locked, and no one in her family had found the key. Could this be the destination for Kay?
 
-Finally, with the intruders outwitted and the Heart of the Forest safe, Felix and Bernard returned it to its rightful place. As soon as the gem touched the pedestal, a wave of energy swept through the wood. Trees grew taller, flowers bloomed brighter, and a sense of peace settled over Willowby Wood. The wind whispered a thank you, its voice full of gratitude and wonder.
+She hurried to the basement, dust swirling around the old chest. With a trembling hand, Riley inserted Kay into the lock. The key turned with a satisfying click, and the chest creaked open, revealing its secrets.
 
-As Felix and Bernard made their way back, they knew that their adventure had changed them. Felix, with his extraordinary fox abilities, had grown more connected to the wood than ever. Bernard, with his years of wisdom, had found a renewed sense of purpose. Together, they had saved Willowby Wood, and in return, it had given them a bond of friendship that would last a lifetime. The wind continued to whisper their story for years to come, a tale of courage, friendship, and the magic that lies in the heart of the forest. The end."""
+Inside the chest, Riley found old maps, strange gadgets, and a diary belonging to her great-grandfather. He had been an explorer! The diary was filled with tales of his adventures and discoveries.
+
+Riley spent the evening reading the diary, captivated by the stories. Kay, now quiet, had found its purpose. Riley realized she had uncovered more than just a hidden box; she had discovered her family's adventurous past.
+
+That night, as Riley went to bed, her mind buzzed with ideas for her own adventures. She knew that with Kay by her side, many more mysteries awaited. And the big oak tree outside seemed more magical than ever. The end."""
 
     # Split story into paragraphs
     text_chunks = story.split("\n\n")
@@ -36,7 +40,8 @@ As Felix and Bernard made their way back, they knew that their adventure had cha
     # # Combine the first chunk and remaining chunks
     # text_chunks = [first_chunk] + remaining_chunks
 
-    await asyncio.gather(get_dialog_tracks(text_chunks), generate_images(text_chunks))
+    # await asyncio.gather(get_dialog_tracks(text_chunks), generate_images(text_chunks))
+    await asyncio.gather(generate_images(text_chunks))
 
     create_video_from_images_and_dialogs(
     images_directory="./out/images",
