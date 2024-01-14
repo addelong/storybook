@@ -8,22 +8,37 @@ import asyncio
 prompt = "Write a creative children's story that would take an average narrator about 5 minutes to read through."
 
 async def main ():
-    story = """It's night, and everything is so dark!
+    story = """A towering tree in a moonlit forest, its branches glowing softly.
 
-What if there are monsters? Or spooky shadows?
+In a moonlit forest stands the Night Tree, ancient and magical, with branches that hold whispered secrets.
 
-But wait! I have my trusty flashlight.
+An owl, a rabbit, and a deer, illuminated by the tree's glow, gather in anticipation.
 
-Oh no, a giant monster!
+A wise owl, a curious rabbit, and a timid deer gather at the Night Tree. They sense the magic of the night unfolding.
 
-It's just my toys! Silly me.
+The Night Tree's branches light up with radiant orbs, casting a gentle glow on the forest floor.
 
-The night isn't scary. It's just... different.
+The Night Tree comes alive with radiant orbs, lighting up the forest. The animals watch, their eyes reflecting the tree's soft light.
 
-Goodnight, night. See you in the morning!"""
+A child, Alex, dressed in pajamas, steps into the clearing, eyes filled with wonder at the glowing tree.
 
-    # Split story into paragraphs
-    text_chunks = story.split("\n\n")
+Alex, a young child in pajamas, steps into the clearing. The glowing Night Tree captures Alex's imagination.
+
+Alex and the animals sit together, sharing stories under the Night Tree's enchanting light.
+
+Under the Night Tree, Alex and the animal friends share enchanting stories. The night air is filled with tales of adventure and wonder.
+
+The Night Tree at dawn, its light fading, as Alex waves goodbye to the animals.
+
+As dawn breaks, the Night Tree's light fades. Alex, with a heart full of stories, waves goodbye to the forest friends. The end.
+"""
+
+    # Split the story into lines, separated by two newlines. Separate them into two sets.
+    # The first set contains the 1st, 3rd, 5th, etc. lines, and the second set contains the 2nd, 4th, 6th, etc. lines.
+    # The first set is the image descriptions, and the second set is the dialog.
+    paragraphs = story.split("\n\n")
+    image_descriptions = paragraphs[::2]
+    dialog = paragraphs[1::2]
 
     # # Create the first text chunk with the first paragraph
     # first_chunk = paragraphs[0]
@@ -34,7 +49,7 @@ Goodnight, night. See you in the morning!"""
     # # Combine the first chunk and remaining chunks
     # text_chunks = [first_chunk] + remaining_chunks
 
-    # await asyncio.gather(get_dialog_tracks(text_chunks), generate_images(text_chunks))
+    await asyncio.gather(get_dialog_tracks(dialog), generate_images(image_descriptions))
     # await asyncio.gather(get_dialog_tracks(text_chunks))
     # await generate_images(text_chunks)
 
