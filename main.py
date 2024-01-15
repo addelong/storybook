@@ -8,30 +8,29 @@ import asyncio
 prompt = "Write a creative children's story that would take an average narrator about 5 minutes to read through."
 
 async def main ():
-    story = """A towering tree in a moonlit forest, its branches glowing softly.
+    story = """Frances, a young girl in cozy pajamas, holding a stuffed bear, stands reluctantly beside her bed.
 
-In a moonlit forest stands the Night Tree, ancient and magical, with branches that hold whispered secrets.
+It's bedtime for Frances, but she's not quite ready to sleep. She holds her stuffed bear, wishing for just a few more minutes of play.
 
-An owl, a rabbit, and a deer, illuminated by the tree's glow, gather in anticipation.
+Frances's room, filled with soft toys and moonlight streaming through the window.
 
-A wise owl, a curious rabbit, and a timid deer gather at the Night Tree. They sense the magic of the night unfolding.
+Her room is a cozy haven, bathed in gentle moonlight. Soft toys are scattered around, each with its own bedtime story.
 
-The Night Tree's branches light up with radiant orbs, casting a gentle glow on the forest floor.
+Frances looking out the window at the starry night sky, her expression thoughtful.
 
-The Night Tree comes alive with radiant orbs, lighting up the forest. The animals watch, their eyes reflecting the tree's soft light.
+Frances peers out her window. The stars twinkle like tiny guides, leading her towards dreamland.
 
-A child, Alex, dressed in pajamas, steps into the clearing, eyes filled with wonder at the glowing tree.
+Her parents say goodnight and sweet dreams, a bedside lamp casting a warm glow.
 
-Alex, a young child in pajamas, steps into the clearing. The glowing Night Tree captures Alex's imagination.
+Mom and Dad come in to tuck Frances in. They kiss her goodnight, leaving a soft glow from the bedside lamp.
 
-Alex and the animals sit together, sharing stories under the Night Tree's enchanting light.
+Frances lying in bed, a faint smile on her face as she clutches her stuffed bear.
 
-Under the Night Tree, Alex and the animal friends share enchanting stories. The night air is filled with tales of adventure and wonder.
+In her bed, Frances snuggles with her bear. She starts to feel sleepy, her eyes drifting shut.
 
-The Night Tree at dawn, its light fading, as Alex waves goodbye to the animals.
+The room in soft darkness with Frances sleeping peacefully, a nightlight casting a comforting glow.
 
-As dawn breaks, the Night Tree's light fades. Alex, with a heart full of stories, waves goodbye to the forest friends. The end.
-"""
+Frances is now sound asleep, the nightlight casting a warm, comforting glow. Her room is quiet, and dreams await her in the peaceful night. The end."""
 
     # Split the story into lines, separated by two newlines. Separate them into two sets.
     # The first set contains the 1st, 3rd, 5th, etc. lines, and the second set contains the 2nd, 4th, 6th, etc. lines.
@@ -51,7 +50,7 @@ As dawn breaks, the Night Tree's light fades. Alex, with a heart full of stories
 
     await asyncio.gather(get_dialog_tracks(dialog), generate_images(image_descriptions))
     # await asyncio.gather(get_dialog_tracks(text_chunks))
-    # await generate_images(text_chunks)
+    # await generate_images(image_descriptions)
 
 
     create_video_from_images_and_dialogs(
@@ -60,6 +59,7 @@ As dawn breaks, the Night Tree's light fades. Alex, with a heart full of stories
         background_music="./bgmusic.mp3",
         dialog_directory="./out/dialog",
         dialog_extension="mp3",
+        dialog_texts=dialog,
         output_video="./final_video.mp4"
     )
 
