@@ -11,7 +11,23 @@ def extract_number(filename):
     match = re.search(r'_(\d+)', filename)
     return int(match.group(1)) if match else 0
 
-def create_video_from_images_and_dialogs(images_directory, image_extension, background_music, dialog_directory, dialog_extension, output_video):
+def insert_line_breaks(text, max_line_length):
+    words = text.split()
+    wrapped_text = ""
+    current_line = ""
+
+    for word in words:
+        word = word.replace("'", "''")
+        if len(current_line) + len(word) <= max_line_length:
+            current_line += word + " "
+        else:
+            wrapped_text += current_line.strip() + "\n"
+            current_line = word + " "
+
+    wrapped_text += current_line.strip()
+    return wrapped_text
+
+def create_video_from_images_and_dialogs(images_directory, image_extension, background_music, dialog_directory, dialog_extension, output_video, dialog_texts):
 
     fade_in_duration = 1  # Fade-in duration in seconds
 
@@ -31,7 +47,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         raise ValueError("Mismatch in the number of images and dialog files")
 
     with open(temp_concat_file, "w") as concat_file:
-        for i, (image, dialog) in enumerate(zip(image_files, dialog_files)):
+        for i, (image, dialog, text) in enumerate(zip(image_files, dialog_files, dialog_texts)):
             segment_file = f"segment_{i}.mp4"
 
             # Get duration of the dialog file
@@ -52,21 +68,35 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
 
             segment_frames = int(segment_duration * 30)
 
+            # Pre-process text to add line breaks if necessary
+            wrapped_text = insert_line_breaks(text, max_line_length=50)  # Adjust max_line_length as needed
+
             subprocess.call([
-            "ffmpeg",
-            "-loop", "1",
-            "-i", images_directory + "/" + image,
-            "-i", dialog_directory + "/" + dialog,
-            "-framerate", "30",
-            "-c:v", "libx264",
-            "-tune", "stillimage",
-            "-c:a", "aac",
-            "-strict", "experimental",
-            "-t", str(segment_duration),  # Updated duration
-            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.05':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={fade_in_duration}",
-            "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio
-            "-y", segment_file
-        ])
+                "ffmpeg",
+                "-loop", "1",
+                "-framerate", "30",
+                "-i", os.path.join(images_directory, image),  # The main image for the video
+                "-i", os.path.join(dialog_directory, dialog),  # The dialog audio file
+                "-t", str(segment_duration),  # Duration of the video segment
+                "-filter_complex",
+                f"[0:v]scale=4032:2304, "
+                f"zoompan=z='1+on/{segment_frames}*0.05':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768,"
+                f"fade=t=in:st=0:d={fade_in_duration}, "
+                f"fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={fade_in_duration}[base];"  # Base video
+                f"movie=subtitlebg.png, scale=778:282[bg];"  # Load and scale subtitle background
+                f"[base][bg]overlay=x=(W-w)/2:y=H-h-50:shortest=1[video];"  # Overlay subtitle background
+                f"[video]drawtext=fontfile=/WINDOWS/fonts/segoepr.ttf:text='{wrapped_text}':fontcolor=black:fontsize=24:x=(w-tw)/2:y=H-th-282/2[final]",  # Apply subtitles
+                "-map", "[final]",  # Map the final video stream with subtitles
+                "-map", "1:a",  # Map the audio stream
+                "-c:v", "libx264",
+                "-tune", "stillimage",
+                "-c:a", "aac",
+                "-strict", "experimental",
+                "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio to sync with video
+                "-y", segment_file  # Output file
+            ])
+
+
             concat_file.write(f"file '{segment_file}'\n")
 
     # Concatenate all segments

@@ -8,25 +8,29 @@ import asyncio
 prompt = "Write a creative children's story that would take an average narrator about 5 minutes to read through."
 
 async def main ():
-    story = """Riley lived in a quiet neighborhood, where each house had its own charm. Her favorite spot was the big oak tree in her front yard, perfect for daydreaming and adventures.
+    story = """In a cozy town with tree-lined streets, there lived a bright and inquisitive girl named Charlotte. She had a keen interest in puzzles and mysteries.
 
-One windy afternoon, while playing near the tree, Riley spotted something glistening in the grass. It was a small, golden key with intricate symbols etched onto its surface. Intrigued, Riley picked it up.
+One sunny morning, while Charlotte was walking to school, she noticed a curious pattern of colorful tiles on the sidewalk. The tiles formed a trail leading down the street.
 
-To her surprise, the key began to speak! "Hello, Riley," it said in a warm, friendly voice. "I'm Kay, the talking key. I've been waiting for a brave soul to find me." Riley's eyes widened in wonder. A talking key!
+Intrigued, Charlotte decided to follow the trail. Each tile had a unique design, and they seemed to be leading her somewhere specific.
 
-Kay explained that it unlocked a secret box hidden somewhere in Riley's house. Riley's heart raced with excitement at the thought of a hidden treasure. She eagerly asked, "Where can I find this box?" Kay responded, "It's closer than you think."
+As she followed the trail, it took her through parts of the town she had never explored. She passed by old bookshops, quaint cafés, and even a clock tower with chimes that echoed through the streets.
 
-Riley dashed into her house, Kay in hand, searching high and low. She looked in cupboards, behind books, and even in the forgotten corners of the attic. The box remained elusive, but Kay kept her spirits up.
+Eventually, the trail of tiles led Charlotte to a small park. In the center of the park was a mosaic on the ground, made of the same colorful tiles.
 
-Then, Riley remembered an old chest in the basement, a relic from her great-grandfather's times. It was always locked, and no one in her family had found the key. Could this be the destination for Kay?
+The mosaic was a large puzzle, depicting a map of the town with certain landmarks highlighted. Charlotte recognized the bookshop, the café, and the clock tower she had just passed.
 
-She hurried to the basement, dust swirling around the old chest. With a trembling hand, Riley inserted Kay into the lock. The key turned with a satisfying click, and the chest creaked open, revealing its secrets.
+Realizing this was a scavenger hunt, Charlotte felt a rush of excitement. She quickly made her way to each landmark, finding a small, hidden token at each location.
 
-Inside the chest, Riley found old maps, strange gadgets, and a diary belonging to her great-grandfather. He had been an explorer! The diary was filled with tales of his adventures and discoveries.
+Each token had a letter on it. When Charlotte put all the tokens together, they spelled out a message: "DISCOVER."
 
-Riley spent the evening reading the diary, captivated by the stories. Kay, now quiet, had found its purpose. Riley realized she had uncovered more than just a hidden box; she had discovered her family's adventurous past.
+With her newfound clues, Charlotte's curiosity was piqued even more. She started to see her town in a new light, full of hidden treasures and secrets to uncover.
 
-That night, as Riley went to bed, her mind buzzed with ideas for her own adventures. She knew that with Kay by her side, many more mysteries awaited. And the big oak tree outside seemed more magical than ever. The end."""
+The final destination led Charlotte back to her school. Here, she found a final token with a note from her teacher, congratulating her on solving the puzzle.
+
+Charlotte's day had turned into an unexpected adventure. She had discovered new places in her town and solved a puzzle that brought her joy and excitement.
+
+That night, as Charlotte reflected on her day, she realized the true treasure was in the journey and the new way she saw her town. She fell asleep with a smile, dreaming of her next adventure. The end."""
 
     # Split story into paragraphs
     text_chunks = story.split("\n\n")
@@ -41,7 +45,7 @@ That night, as Riley went to bed, her mind buzzed with ideas for her own adventu
     # text_chunks = [first_chunk] + remaining_chunks
 
     # await asyncio.gather(get_dialog_tracks(text_chunks), generate_images(text_chunks))
-    await asyncio.gather(generate_images(text_chunks))
+    # await asyncio.gather(generate_images(text_chunks))
 
     create_video_from_images_and_dialogs(
     images_directory="./out/images",
@@ -49,7 +53,8 @@ That night, as Riley went to bed, her mind buzzed with ideas for her own adventu
     background_music="./bgmusic.mp3",
     dialog_directory="./out/dialog",
     dialog_extension="mp3",
-    output_video="./final_video.mp4"
+    output_video="./final_video.mp4",
+    dialog_texts=text_chunks
 )
 
 if __name__ == "__main__":
