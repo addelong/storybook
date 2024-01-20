@@ -36,7 +36,7 @@ async def generate_image(session, text_chunk):
         "cfg_scale": 8,
         "text_prompts": [
             {
-            "text": "children's book, high quality, 3d render, digitally animated movie still, digital art, accurate, color, coherent, " + text_chunk.replace(',', ''),
+            "text": "children's book, high quality, 3d render, digitally animated movie still, digital art, color, coherent, " + text_chunk.replace(',', ''),
             "weight": 1
             },
             {
