@@ -36,7 +36,7 @@ async def generate_image(session, text_chunk):
         "cfg_scale": 20,
         "text_prompts": [
             {
-            "text": "high quality, 3d render, digitally animated movie still, digital art, color, accurate, coherent, " + text_chunk,
+            "text": "high quality, 3d render, 3d animated movie still, digital art, color, accurate, coherent, " + text_chunk,
             "weight": 1
             },
             {
