@@ -8,25 +8,35 @@ import asyncio
 prompt = "Write a creative children's story that would take an average narrator about 5 minutes to read through."
 
 async def main ():
-    story = """Riley lived in a quiet neighborhood, where each house had its own charm. Her favorite spot was the big oak tree in her front yard, perfect for daydreaming and adventures.
+    story = """Noah discovered an old, crinkled map inside a book at the library, not a regular book, but one hidden behind others, covered in dust. The map was drawn in bright colors, with a big, candy castle at the end of a winding path through a forest of sweets.
 
-One windy afternoon, while playing near the tree, Riley spotted something glistening in the grass. It was a small, golden key with intricate symbols etched onto its surface. Intrigued, Riley picked it up.
+With excitement bubbling inside him, Noah decided to follow the map the very next day. He packed a small backpack with essentials: a flashlight, a water bottle, and, of course, some snacks for the journey.
 
-To her surprise, the key began to speak! "Hello, Riley," it said in a warm, friendly voice. "I'm Kay, the talking key. I've been waiting for a brave soul to find me." Riley's eyes widened in wonder. A talking key!
+The path began just outside his town, marked by a signpost shaped like a lollipop. As Noah walked, the trees turned into candy canes and the bushes into clusters of cotton candy.
 
-Kay explained that it unlocked a secret box hidden somewhere in Riley's house. Riley's heart raced with excitement at the thought of a hidden treasure. She eagerly asked, "Where can I find this box?" Kay responded, "It's closer than you think."
+Noah reached a river that flowed with chocolate milk, where a boat made of a giant wafer waited. A friendly frog, wearing a tiny captain's hat, offered to guide Noah across. "Watch out for the sticky marshmallows," the frog warned as they set sail.
 
-Riley dashed into her house, Kay in hand, searching high and low. She looked in cupboards, behind books, and even in the forgotten corners of the attic. The box remained elusive, but Kay kept her spirits up.
+On the other side of the river, Noah encountered a garden of candy flowers. They were guarded by bees buzzing softly, collecting nectar from gumdrop buds. "Please, take one," buzzed a bee, offering Noah a sparkling jelly flower.
 
-Then, Riley remembered an old chest in the basement, a relic from her great-grandfather's times. It was always locked, and no one in her family had found the key. Could this be the destination for Kay?
+As he ventured further, Noah found himself in front of the Candy Castle, its walls glistening under the sun, made entirely of different shades of hard candy. The gate was locked, with a riddle inscribed above it: "Sweet and round, I grow on the ground, in the autumn, I am found."
 
-She hurried to the basement, dust swirling around the old chest. With a trembling hand, Riley inserted Kay into the lock. The key turned with a satisfying click, and the chest creaked open, revealing its secrets.
+Pondering the riddle, Noah realized the answer was "pumpkin." He said it out loud, and the gates swung open, revealing the courtyard filled with fountains of lemonade and benches made of licorice.
 
-Inside the chest, Riley found old maps, strange gadgets, and a diary belonging to her great-grandfather. He had been an explorer! The diary was filled with tales of his adventures and discoveries.
+Inside the castle, Noah met the Candy Queen, a kind figure dressed in robes that shimmered like wrapping foil. She explained that the Candy Castle was in trouble; a spell had been cast on it, turning its once endless supply of sweets sour.
 
-Riley spent the evening reading the diary, captivated by the stories. Kay, now quiet, had found its purpose. Riley realized she had uncovered more than just a hidden box; she had discovered her family's adventurous past.
+To break the spell, Noah needed to find the Heart of the Castle, a crystal hidden within a maze behind the castle. The Queen handed Noah a small, peppermint compass that would guide him to the heart.
 
-That night, as Riley went to bed, her mind buzzed with ideas for her own adventures. She knew that with Kay by her side, many more mysteries awaited. And the big oak tree outside seemed more magical than ever. The end."""
+Noah navigated the maze, following the peppermint compass, which ticked like a clock and smelled sweetly of mint. Finally, he found the crystal, glowing softly atop a pedestal.
+
+As soon as Noah touched the crystal, a warm light spread throughout the maze, and the compass pulsed with a stronger glow. He hurried back to the Queen, crystal in hand.
+
+With the Heart of the Castle restored, the spell was broken. The Candy Castle and its surroundings burst back into vibrant colors, sweets turning sweet once more.
+
+The Candy Queen thanked Noah with a gift, a small bag of magical candy that would never run out. "You’ve saved the Candy Castle, Noah. You're always welcome here," she said, smiling.
+
+Noah returned home, his backpack lighter but his heart full. He had saved the Candy Castle, and in his pocket, he carried the magical candy, a reminder of his incredible adventure.
+
+Back in his room, Noah placed the never-ending candy on his desk and the map back inside the book. He knew he'd always remember the day he ventured beyond the ordinary, into a world where magic was real and kindness was the key to adventure. The end."""
 
     # Split story into paragraphs
     text_chunks = story.split("\n\n")
@@ -41,7 +51,7 @@ That night, as Riley went to bed, her mind buzzed with ideas for her own adventu
     # text_chunks = [first_chunk] + remaining_chunks
 
     # await asyncio.gather(get_dialog_tracks(text_chunks), generate_images(text_chunks))
-    await asyncio.gather(generate_images(text_chunks))
+    # await asyncio.gather(generate_images(text_chunks))
 
     create_video_from_images_and_dialogs(
     images_directory="./out/images",
