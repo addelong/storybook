@@ -33,14 +33,14 @@ async def generate_image(session, text_chunk):
         "width": 1344,
         "height": 768,
         "style-preset": "digital-art",
-        "cfg_scale": 8,
+        "cfg_scale": 19,
         "text_prompts": [
             {
-            "text": "children's book, perfect quality, 3d animated movie still, cgi 3d render, digital art, color, coherent, accurate, uhd, detailed face, geometrically correct, " + text_chunk.replace(',', ''),
+            "text": "beautiful, perfect quality, 3d animated movie still, pixar, digital art, color, coherent, uhd, detailed face, looks good, expressive, magical, " + text_chunk.replace(',', ''),
             "weight": 1
             },
             {
-            "text": "blurry, bad, sloppy, weird, incoherent, ai generated, weird faces, messed up, weird hands, anatomically incorrect, nonsense, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions",
+            "text": "blurry, bad, sloppy, incoherent, weird faces, messed up, weird hands, too many limbs or digits, anatomically incorrect, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions, maniacal smiling",
             "weight": -1
             }
         ],
