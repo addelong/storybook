@@ -8,23 +8,27 @@ import asyncio
 prompt = "Write a creative children's story that would take an average narrator about 5 minutes to read through."
 
 async def main ():
-    story = """In the cozy village of Flufferton, nestled among cotton-candy clouds, lived Milo, a young bear with a head full of inventive ideas. Unlike other bears who were content with honey and fish, Milo dreamed of playing among the clouds.
+    story = """In a sun-drenched valley surrounded by towering mountains, there lived a llama named Liam. Liam was not your average llama; his dreams were as high as the peaks around him, filled with roller coasters and ferris wheels.
 
-One sunny day, inspired by the fluffy clouds above, Milo decided to build a machine that could create marshmallow clouds. He envisioned clouds so soft and sweet, everyone in Flufferton could enjoy a piece of the sky.
+Liam had spent his whole life in the valley, tending to the fields, but he had always longed for adventure. He'd heard stories of a place where the fun never stopped, a land of thrills and laughs known as Wonder Whirl Theme Park.
 
-Milo set to work, gathering gears, levers, and, most importantly, marshmallows. He tinkered and toiled in his workshop, his paws covered in sticky sweetness as he assembled his marshmallow cloud machine.
+One morning, Liam decided it was time to take a vacation. He put on his favorite striped hat, packed a bag of his best snacks, and set off on a journey to the theme park he had always dreamed of visiting.
 
-After days of hard work, Milo unveiled his creation at the village square. The machine was a wonder to behold, with pipes whistling and gears turning, ready to transform marshmallows into clouds.
+The journey was long, with winding roads that curled around the mountains like ribbons. But Liam's spirits were high, and he hummed a merry tune with every step, thinking of the exciting rides that awaited him.
 
-With a push of a button, the machine roared to life, puffing out clouds of marshmallows that floated gently over Flufferton. The villagers gathered, their mouths open in awe, as Milo's marshmallow clouds drifted down from the sky.
+As he reached the gates of Wonder Whirl, his eyes grew wide with amazement. The park was even more magnificent than he had imagined, with bright colors everywhere and the sound of laughter filling the air.
 
-Children laughed and danced, catching marshmallows on their tongues. Adults, too, couldn't help but join in the fun, reminded of the joy of simple pleasures.
+Liam wasted no time. He dashed to the nearest roller coaster, a twisting, turning beast named the Dragon's Tail. With his heart in his throat, Liam rode the coaster, feeling the wind rush against his woolly face, and for the first time, he felt like he was flying.
 
-Milo watched, his heart swelling with pride. His dream of bringing the clouds down to earth had come true, and with it, he brought a day of joy and sweetness to Flufferton.
+Next was the Giant Wheel, a towering ferris wheel that offered views across the entire park. From the top, Liam could see far across the land, and he felt as if he was part of a larger world, a world full of possibility.
 
-The marshmallow cloud machine became a village treasure, brought out for special occasions to fill the sky with sweetness. And Milo, the young bear with big dreams, became known as the inventor who turned the sky into a treat for all.
+The day turned into evening, and the park lit up with twinkling lights. Liam tried every game and rode every ride, his laughter joining the chorus of happy voices around him.
 
-From that day on, the villagers of Flufferton looked up at the clouds not just with wonder, but with a taste of sweetness on their lips, all thanks to Milo's marvelous invention. The end."""
+As the fireworks began to paint the night sky, Liam found a quiet spot to watch. He thought about his home in the valley and his adventure in Wonder Whirl. He felt a warmth in his heart, knowing that he'd have incredible stories to share.
+
+When Liam returned home, he was greeted with hugs and eager questions. As he recounted his tales, he realized that while the theme park was an amazing place, it was the journey and the return that made his adventure complete.
+
+Liam the Llama's vacation became a legend in the valley, inspiring others to dream big. And Liam himself? He kept the striped hat on a special hook, a reminder of the theme park vacation and the thrill of the Dragon's Tail, ready for whenever he felt the pull of adventure again. The end."""
 
     # Split story into paragraphs
     text_chunks = story.split("\n\n")
@@ -38,7 +42,7 @@ From that day on, the villagers of Flufferton looked up at the clouds not just w
     # # Combine the first chunk and remaining chunks
     # text_chunks = [first_chunk] + remaining_chunks
 
-    await asyncio.gather(get_dialog_tracks(text_chunks), generate_images(text_chunks))
+    # await asyncio.gather(get_dialog_tracks(text_chunks), generate_images(text_chunks))
     # await asyncio.gather(generate_images(text_chunks))
 
     create_video_from_images_and_dialogs(
