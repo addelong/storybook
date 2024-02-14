@@ -1,15 +1,42 @@
 import sys
+import asyncio
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar
+from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal
+
 # Import necessary functions from your other scripts
 from dialog import get_dialog_tracks
 from images import generate_images
 from video import create_video_from_images_and_dialogs
 from creds import stability_api_key, elevenlabs_api_key, voice_model_id
 
+class Worker(QThread):
+    finished = pyqtSignal()  # Signal to indicate the worker has finished
+
+    """ Worker thread to handle long-running tasks without freezing the GUI """
+    def __init__(self, func, *args, **kwargs):
+        super(Worker, self).__init__()
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.finished.connect(self.deleteLater)  # Ensure the worker cleans up after finishing
+
+    def run(self):
+        if asyncio.iscoroutinefunction(self.func):
+            # Create a new event loop for the coroutine
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self.func(*self.args, **self.kwargs))
+            loop.close()
+        else:
+            self.func(*self.args, **self.kwargs)
+        self.finished.emit()  # Emit finished signal when done
+
+
 class MainApp(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.active_workers = []  # Add this line to keep track of active workers
 
     def initUI(self):
         self.layout = QVBoxLayout()
@@ -38,8 +65,8 @@ class MainApp(QWidget):
         # Image Generation Text Section (Optional)
         self.image_text = QTextEdit()
         self.image_negative_text = QTextEdit()
-        self.image_text.setText("beautiful, perfect quality, 3d animated movie still, pixar, digital art, color, coherent, uhd, detailed face, looks good, expressive, magical, ")
-        self.image_negative_text.setText("blurry, bad, sloppy, incoherent, weird faces, messed up, weird hands, too many limbs or digits, anatomically incorrect, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions, maniacal smiling")
+        self.image_text.setText("dark, ominous, scary, mysterious, spooky, stylized, unsettling, photorealistic, uhd 4k, ")
+        self.image_negative_text.setText("blurry, bad, sloppy, incoherent, weird faces, messed up, weird hands, too many limbs or digits, anatomically incorrect, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions, maniacal smiling, kid friendly")
         self.layout.addWidget(QLabel("Image Generation Prompt"))
         self.layout.addWidget(self.image_text)
         self.layout.addWidget(QLabel("Image Generation Negative Prompt"))
@@ -55,10 +82,6 @@ class MainApp(QWidget):
         self.bgm_layout.addWidget(self.bgm_file)
         self.bgm_layout.addWidget(self.bgm_button)
         self.layout.addLayout(self.bgm_layout)
-
-        # Progress Bar
-        self.progress_bar = QProgressBar()
-        self.layout.addWidget(self.progress_bar)
 
         # Control Buttons
         self.buttons_layout = QHBoxLayout()
@@ -89,7 +112,7 @@ class MainApp(QWidget):
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
         dialog = paragraphs[1::2]
-        self.start_worker(get_dialog_tracks, dialog)
+        self.start_worker(get_dialog_tracks, dialog, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
 
     def generate_images(self):
         # Split the story into lines, separated by two newlines. Separate them into two sets.
@@ -98,10 +121,21 @@ class MainApp(QWidget):
         story_text = self.story_text.toPlainText()
         paragraphs = story_text.split("\n\n")
         image_descriptions = paragraphs[::2]
-        self.start_worker(generate_images, image_descriptions, self.image_text.toPlainText(), self.image_negative_text.toPlainText())
+        self.start_worker(generate_images, image_descriptions, self.image_text.toPlainText(), self.image_negative_text.toPlainText(), self.api_keys['Stability API Key'].text())
 
     def compile_video(self):
-        self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", "./final_video.mp4")
+        story = self.story_text.toPlainText()
+        paragraphs = story.split("\n\n")
+        dialog = paragraphs[1::2]
+        self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", dialog, "./final_video.mp4")
+
+    def start_worker(self, func, *args):
+        """ Starts a worker thread to run a function """
+        worker = Worker(func, *args)
+        worker.finished.connect(lambda: self.active_workers.remove(worker))  # Remove worker from the list when done
+        self.active_workers.append(worker)  # Keep track of the worker
+        worker.start()
+        # Optionally, connect signals from the worker here (e.g., for progress updates)
 
 
     # Additional methods and logic for your scripts
