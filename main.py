@@ -1,54 +1,105 @@
-from text import generate_story
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar
+# Import necessary functions from your other scripts
 from dialog import get_dialog_tracks
 from images import generate_images
 from video import create_video_from_images_and_dialogs
-import asyncio
+from creds import stability_api_key, elevenlabs_api_key, voice_model_id
+
+class MainApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.layout = QVBoxLayout()
+
+        # API Credentials Section
+        self.api_keys_layout = QHBoxLayout()
+        self.api_keys = {
+            'Stability API Key': QLineEdit(),
+            'ElevenLabs API Key': QLineEdit(),
+            'Voice Model ID': QLineEdit()
+        }
+        # Set default values for API keys here
+        self.api_keys['Stability API Key'].setText(stability_api_key if stability_api_key else 'your_stability_api_key')
+        self.api_keys['ElevenLabs API Key'].setText(elevenlabs_api_key if elevenlabs_api_key else 'your_elevenlabs_api_key')
+        self.api_keys['Voice Model ID'].setText(voice_model_id if voice_model_id else 'your_voice_model_id')  
+        for label, line_edit in self.api_keys.items():
+            self.api_keys_layout.addWidget(QLabel(label))
+            self.api_keys_layout.addWidget(line_edit)
+        self.layout.addLayout(self.api_keys_layout)
+
+        # Story Text Section
+        self.story_text = QTextEdit()
+        self.story_text.setPlaceholderText("Enter your story here...")
+        self.layout.addWidget(self.story_text)
+
+        # Image Generation Text Section (Optional)
+        self.image_text = QTextEdit()
+        self.image_negative_text = QTextEdit()
+        self.image_text.setText("beautiful, perfect quality, 3d animated movie still, pixar, digital art, color, coherent, uhd, detailed face, looks good, expressive, magical, ")
+        self.image_negative_text.setText("blurry, bad, sloppy, incoherent, weird faces, messed up, weird hands, too many limbs or digits, anatomically incorrect, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions, maniacal smiling")
+        self.layout.addWidget(QLabel("Image Generation Prompt"))
+        self.layout.addWidget(self.image_text)
+        self.layout.addWidget(QLabel("Image Generation Negative Prompt"))
+        self.layout.addWidget(self.image_negative_text)
+
+        # Background Music Selection
+        self.bgm_layout = QHBoxLayout()
+        self.bgm_label = QLabel("Background Music:")
+        self.bgm_file = QLineEdit()
+        self.bgm_button = QPushButton("Browse")
+        self.bgm_button.clicked.connect(self.browse_music)
+        self.bgm_layout.addWidget(self.bgm_label)
+        self.bgm_layout.addWidget(self.bgm_file)
+        self.bgm_layout.addWidget(self.bgm_button)
+        self.layout.addLayout(self.bgm_layout)
+
+        # Progress Bar
+        self.progress_bar = QProgressBar()
+        self.layout.addWidget(self.progress_bar)
+
+        # Control Buttons
+        self.buttons_layout = QHBoxLayout()
+        self.generate_dialog_button = QPushButton("Generate Dialog")
+        self.generate_dialog_button.clicked.connect(self.generate_dialog)
+        self.generate_images_button = QPushButton("Generate Images")
+        self.generate_images_button.clicked.connect(self.generate_images)
+        self.compile_video_button = QPushButton("Compile Video")
+        self.compile_video_button.clicked.connect(self.compile_video)
+        self.buttons_layout.addWidget(self.generate_dialog_button)
+        self.buttons_layout.addWidget(self.generate_images_button)
+        self.buttons_layout.addWidget(self.compile_video_button)
+        self.layout.addLayout(self.buttons_layout)
+
+        # Set main layout
+        self.setLayout(self.layout)
+        self.setWindowTitle('Story to Video Converter')
+
+    def browse_music(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Select Background Music", "", "Audio Files (*.mp3 *.wav)")
+        if filename:
+            self.bgm_file.setText(filename)
+
+    def generate_dialog(self):
+        story_text = self.story_text.toPlainText()
+        text_chunks = story_text.split("\n\n")
+        self.start_worker(get_dialog_tracks, text_chunks)
+
+    def generate_images(self):
+        image_text = self.image_text.toPlainText() if self.image_text.toPlainText() else self.story_text.toPlainText()
+        text_chunks = image_text.split("\n\n")
+        self.start_worker(generate_images, text_chunks, self.image_text.toPlainText(), self.image_negative_text.toPlainText())
+
+    def compile_video(self):
+        self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", "./final_video.mp4")
 
 
-prompt = "Write a creative children's story that would take an average narrator about 5 minutes to read through."
+    # Additional methods and logic for your scripts
 
-async def main ():
-    story = """In the cozy village of Flufferton, nestled among cotton-candy clouds, lived Milo, a young bear with a head full of inventive ideas. Unlike other bears who were content with honey and fish, Milo dreamed of playing among the clouds.
-
-One sunny day, inspired by the fluffy clouds above, Milo decided to build a machine that could create marshmallow clouds. He envisioned clouds so soft and sweet, everyone in Flufferton could enjoy a piece of the sky.
-
-Milo set to work, gathering gears, levers, and, most importantly, marshmallows. He tinkered and toiled in his workshop, his paws covered in sticky sweetness as he assembled his marshmallow cloud machine.
-
-After days of hard work, Milo unveiled his creation at the village square. The machine was a wonder to behold, with pipes whistling and gears turning, ready to transform marshmallows into clouds.
-
-With a push of a button, the machine roared to life, puffing out clouds of marshmallows that floated gently over Flufferton. The villagers gathered, their mouths open in awe, as Milo's marshmallow clouds drifted down from the sky.
-
-Children laughed and danced, catching marshmallows on their tongues. Adults, too, couldn't help but join in the fun, reminded of the joy of simple pleasures.
-
-Milo watched, his heart swelling with pride. His dream of bringing the clouds down to earth had come true, and with it, he brought a day of joy and sweetness to Flufferton.
-
-The marshmallow cloud machine became a village treasure, brought out for special occasions to fill the sky with sweetness. And Milo, the young bear with big dreams, became known as the inventor who turned the sky into a treat for all.
-
-From that day on, the villagers of Flufferton looked up at the clouds not just with wonder, but with a taste of sweetness on their lips, all thanks to Milo's marvelous invention. The end."""
-
-    # Split story into paragraphs
-    text_chunks = story.split("\n\n")
-
-    # # Create the first text chunk with the first paragraph
-    # first_chunk = paragraphs[0]
-
-    # # Create subsequent chunks with two paragraphs each
-    # remaining_chunks = ["\n\n".join(paragraphs[i:i+2]) for i in range(1, len(paragraphs), 2)]
-
-    # # Combine the first chunk and remaining chunks
-    # text_chunks = [first_chunk] + remaining_chunks
-
-    await asyncio.gather(get_dialog_tracks(text_chunks), generate_images(text_chunks))
-    # await asyncio.gather(generate_images(text_chunks))
-
-    create_video_from_images_and_dialogs(
-    images_directory="./out/images",
-    image_extension="png",
-    background_music="./bgmusic.mp3",
-    dialog_directory="./out/dialog",
-    dialog_extension="mp3",
-    output_video="./final_video.mp4"
-)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    mainApp = MainApp()
+    mainApp.show()
+    sys.exit(app.exec_())
