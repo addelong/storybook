@@ -83,14 +83,22 @@ class MainApp(QWidget):
             self.bgm_file.setText(filename)
 
     def generate_dialog(self):
-        story_text = self.story_text.toPlainText()
-        text_chunks = story_text.split("\n\n")
-        self.start_worker(get_dialog_tracks, text_chunks)
+        # Split the story into lines, separated by two newlines. Separate them into two sets.
+        # The first set contains the 1st, 3rd, 5th, etc. lines, and the second set contains the 2nd, 4th, 6th, etc. lines.
+        # The first set is the image descriptions, and the second set is the dialog.
+        story = self.story_text.toPlainText()
+        paragraphs = story.split("\n\n")
+        dialog = paragraphs[1::2]
+        self.start_worker(get_dialog_tracks, dialog)
 
     def generate_images(self):
-        image_text = self.image_text.toPlainText() if self.image_text.toPlainText() else self.story_text.toPlainText()
-        text_chunks = image_text.split("\n\n")
-        self.start_worker(generate_images, text_chunks, self.image_text.toPlainText(), self.image_negative_text.toPlainText())
+        # Split the story into lines, separated by two newlines. Separate them into two sets.
+        # The first set contains the 1st, 3rd, 5th, etc. lines, and the second set contains the 2nd, 4th, 6th, etc. lines.
+        # The first set is the image descriptions, and the second set is the dialog.
+        story_text = self.story_text.toPlainText()
+        paragraphs = story_text.split("\n\n")
+        image_descriptions = paragraphs[::2]
+        self.start_worker(generate_images, image_descriptions, self.image_text.toPlainText(), self.image_negative_text.toPlainText())
 
     def compile_video(self):
         self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", "./final_video.mp4")
