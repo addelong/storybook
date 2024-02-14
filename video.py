@@ -35,6 +35,10 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
     temp_concat_file = "concat_list.txt"
     temp_music_file = "temp_music.mp3"
 
+    # Copy background_music to ./bgmusic.mp3 to not have to worry about path separators
+    subprocess.call(["cp", background_music, "./bgmusic.mp3"])
+    background_music = "./bgmusic.mp3"
+
     image_files = sorted([f for f in os.listdir(images_directory) if f.endswith(image_extension)],
                         key=extract_number)
 
@@ -59,10 +63,12 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
                 raise e
             
             segment_duration = float(dialog_duration) + fade_in_duration
+            segment_fade_out_duration = fade_in_duration
 
             # Extend the duration of the last image by 2 seconds
             if i == len(image_files) - 1:
-                segment_duration += 2  # Extend duration for the last image
+                segment_duration += 4  # Extend duration for the last image
+                segment_fade_out_duration += 2  # Extend fade-out duration for the last image
 
             segment_frames = int(segment_duration * 30)
 
@@ -79,9 +85,13 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-c:v", "libx264",
             "-tune", "stillimage",
             "-c:a", "aac",
+            "-b:a", "192k",  # Set audio bitrate
+            "-ar", "48000",  # Set audio sample rate
             "-strict", "experimental",
             "-t", str(segment_duration),  # Updated duration
-            "-vf", f"scale=2304:4032, zoompan=z='1+on/{segment_frames}*0.05':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=768x1344, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={fade_in_duration}, drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=120, drawtext=fontfile=/WINDOWS/fonts/ITCKRIST.TTF:text='{wrapped_text}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-240+(lh-10)",
+            # add this to the end of the following line to add text to the video
+            # , drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=120, drawtext=fontfile=/WINDOWS/fonts/ITCKRIST.TTF:text='{wrapped_text}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-240+(lh-10)
+            "-vf", f"scale=2304:4032, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=768x1344, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}",
             "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio
             "-y", segment_file
         ])
@@ -110,7 +120,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-stream_loop", str(num_loops),
         "-i", background_music,
         "-t", video_duration,
-        "-filter_complex", f"[0:a]volume=0.5,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
+        "-filter_complex", f"[0:a]volume=0.6,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
         "-map", "[a]",
         "-y", temp_music_file
     ])
@@ -120,11 +130,12 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "ffmpeg",
         "-i", temp_video_file,
         "-i", temp_music_file,
-        "-filter_complex", "[1:a]volume=0.4[a1]; [0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[a]",
+        "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=3[a]",
         "-map", "0:v",
         "-map", "[a]",
         "-c:v", "copy",
         "-c:a", "aac",
+        "-b:a", "192k",  # Ensure a higher audio bitrate for the output
         "-shortest",
         "-y", output_video
     ])
