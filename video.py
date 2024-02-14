@@ -11,15 +11,29 @@ def extract_number(filename):
     match = re.search(r'_(\d+)', filename)
     return int(match.group(1)) if match else 0
 
-def create_video_from_images_and_dialogs(images_directory, image_extension, background_music, dialog_directory, dialog_extension, output_video):
+def insert_line_breaks(text, max_line_length):
+    words = text.split()
+    wrapped_text = ""
+    current_line = ""
+
+    for word in words:
+        word = word.replace("'", "''")
+        if len(current_line) + len(word) <= max_line_length:
+            current_line += word + " "
+        else:
+            wrapped_text += current_line.strip() + "\n"
+            current_line = word + " "
+
+    wrapped_text += current_line.strip()
+    return wrapped_text
+
+def create_video_from_images_and_dialogs(images_directory, image_extension, background_music, dialog_directory, dialog_extension, dialog_texts, output_video):
 
     fade_in_duration = 1  # Fade-in duration in seconds
 
     temp_video_file = "temp_video.mp4"
-    temp_video_file_with_audio = "temp_video_with_audio.mp4"  # Temporary file for video with audio
     temp_concat_file = "concat_list.txt"
     temp_music_file = "temp_music.mp3"
-    prepend_video_clip = "intro.mp4"
 
     image_files = sorted([f for f in os.listdir(images_directory) if f.endswith(image_extension)],
                         key=extract_number)
@@ -31,7 +45,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         raise ValueError("Mismatch in the number of images and dialog files")
 
     with open(temp_concat_file, "w") as concat_file:
-        for i, (image, dialog) in enumerate(zip(image_files, dialog_files)):
+        for i, (image, dialog, text) in enumerate(zip(image_files, dialog_files, dialog_texts)):
             segment_file = f"segment_{i}.mp4"
 
             # Get duration of the dialog file
@@ -52,6 +66,10 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
 
             segment_frames = int(segment_duration * 30)
 
+            # Pre-process text to add line breaks if necessary
+            wrapped_text = insert_line_breaks(text, max_line_length=50)  # Adjust max_line_length as needed
+
+
             subprocess.call([
             "ffmpeg",
             "-loop", "1",
@@ -63,8 +81,8 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-c:a", "aac",
             "-strict", "experimental",
             "-t", str(segment_duration),  # Updated duration
-            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.05':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={fade_in_duration}",
-            "-af", f"volume=1.5,adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio
+            "-vf", f"scale=2304:4032, zoompan=z='1+on/{segment_frames}*0.05':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=768x1344, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={fade_in_duration}, drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=120, drawtext=fontfile=/WINDOWS/fonts/ITCKRIST.TTF:text='{wrapped_text}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-240+(lh-10)",
+            "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio
             "-y", segment_file
         ])
             concat_file.write(f"file '{segment_file}'\n")
@@ -102,37 +120,17 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "ffmpeg",
         "-i", temp_video_file,
         "-i", temp_music_file,
-        "-filter_complex", "[1:a]volume=0.7[a1]; [0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[a]",
+        "-filter_complex", "[1:a]volume=0.4[a1]; [0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[a]",
         "-map", "0:v",
         "-map", "[a]",
         "-c:v", "copy",
         "-c:a", "aac",
         "-shortest",
-        "-y", temp_video_file_with_audio
-    ])
-
-    # Concatenate prepend video clip and the generated video
-    # with open(temp_concat_file_2, "w") as concat_file:
-    #     concat_file.write(f"file '{prepend_video_clip}'\n")
-    #     concat_file.write(f"file '{temp_video_file_with_audio}'\n")
-
-    subprocess.call([
-        "ffmpeg",
-        "-i", prepend_video_clip,
-        "-i", temp_video_file_with_audio,
-        "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]",
-        "-map", "[v]",
-        "-map", "[a]",
-        "-c:v", "libx264",  # You might adjust this depending on your needs
-        "-c:a", "aac",      # AAC is a widely compatible audio codec
-        "-strict", "experimental",
-        "-r", "30",         # This sets the frame rate to 24 frames per second
         "-y", output_video
     ])
 
     # Clean up temporary files
     os.remove(temp_video_file)
-    os.remove(temp_video_file_with_audio)
     os.remove(temp_concat_file)
     # os.remove(temp_concat_file_2)
     os.remove(temp_music_file)
