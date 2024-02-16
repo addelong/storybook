@@ -65,8 +65,8 @@ class MainApp(QWidget):
         # Image Generation Text Section (Optional)
         self.image_text = QTextEdit()
         self.image_negative_text = QTextEdit()
-        self.image_text.setText("dark, ominous, scary, mysterious, spooky, stylized, unsettling, high quality photography, canon eos r3, photograph of ")
-        self.image_negative_text.setText("blurry, bad, sloppy, incoherent, weird faces, messed up, weird hands, too many limbs or digits, anatomically incorrect, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions, maniacal smiling, kid friendly, illustration, drawing")
+        self.image_text.setText("beautiful, kid friendly, perfect quality, 3d animated movie still, pixar, digital art, color, coherent, uhd, detailed face, looks good, expressive, magical, ")
+        self.image_negative_text.setText("blurry, bad, sloppy, incoherent, weird faces, messed up, weird hands, too many limbs or digits, anatomically incorrect, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions, maniacal smiling")
         self.layout.addWidget(QLabel("Image Generation Prompt"))
         self.layout.addWidget(self.image_text)
         self.layout.addWidget(QLabel("Image Generation Negative Prompt"))
@@ -111,8 +111,7 @@ class MainApp(QWidget):
         # The first set is the image descriptions, and the second set is the dialog.
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
-        dialog = paragraphs[1::2]
-        self.start_worker(get_dialog_tracks, dialog, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
+        self.start_worker(get_dialog_tracks, paragraphs, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
 
     def generate_images(self):
         # Split the story into lines, separated by two newlines. Separate them into two sets.
@@ -120,14 +119,12 @@ class MainApp(QWidget):
         # The first set is the image descriptions, and the second set is the dialog.
         story_text = self.story_text.toPlainText()
         paragraphs = story_text.split("\n\n")
-        image_descriptions = paragraphs[::2]
-        self.start_worker(generate_images, image_descriptions, self.image_text.toPlainText(), self.image_negative_text.toPlainText(), self.api_keys['Stability API Key'].text())
+        self.start_worker(generate_images, paragraphs, self.image_text.toPlainText(), self.image_negative_text.toPlainText(), self.api_keys['Stability API Key'].text())
 
     def compile_video(self):
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
-        dialog = paragraphs[1::2]
-        self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", dialog, "./final_video.mp4")
+        self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
 
     def start_worker(self, func, *args):
         """ Starts a worker thread to run a function """

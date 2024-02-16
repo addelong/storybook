@@ -29,10 +29,10 @@ async def generate_images(text_chunks, positive_prompt, negative_prompt, stabili
 
 async def generate_image(session, text_chunk, positive_prompt, negative_prompt, stability_api_key):
     body = {
-        "width": 768,
-        "height": 1344,
+        "width": 1344,
+        "height": 768,
         "style-preset": "photographic",
-        "cfg_scale": 15,
+        "cfg_scale": 19,
         "text_prompts": [
             {
             "text": positive_prompt + text_chunk.replace(',', ''),
