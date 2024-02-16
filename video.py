@@ -91,7 +91,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-t", str(segment_duration),  # Updated duration
             # add this to the end of the following line to add text to the video
             # , drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=120, drawtext=fontfile=/WINDOWS/fonts/ITCKRIST.TTF:text='{wrapped_text}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-240+(lh-10)
-            "-vf", f"scale=2304:4032, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=768x1344, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}",
+            "-vf", f"scale=2304:4032, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=768x1344, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=240, drawtext=fontfile=./CaslonAntique.ttf:text='{wrapped_text}':fontcolor=white:fontsize=34:x=(w-tw)/2:y=h-240+(lh-10)",
             "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio
             "-y", segment_file
         ])
@@ -120,7 +120,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-stream_loop", str(num_loops),
         "-i", background_music,
         "-t", video_duration,
-        "-filter_complex", f"[0:a]volume=0.6,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
+        "-filter_complex", f"[0:a]volume=0.5,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
         "-map", "[a]",
         "-y", temp_music_file
     ])
