@@ -73,7 +73,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             segment_frames = int(segment_duration * 30)
 
             # Pre-process text to add line breaks if necessary
-            wrapped_text = insert_line_breaks(text, max_line_length=50)  # Adjust max_line_length as needed
+            wrapped_text = insert_line_breaks(text, max_line_length=65)  # Adjust max_line_length as needed
 
 
             subprocess.call([
