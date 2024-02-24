@@ -32,7 +32,7 @@ async def generate_image(session, text_chunk, positive_prompt, negative_prompt, 
         "width": 768,
         "height": 1344,
         "style-preset": "photographic",
-        "cfg_scale": 15,
+        "cfg_scale": 8,
         "text_prompts": [
             {
             "text": positive_prompt + text_chunk.replace(',', ''),
