@@ -142,13 +142,19 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-y", temp_video_file_with_audio
     ])
 
+    overlay_video = "./overlay.mp4"
+    overlay_duration = 5.5  # Duration of the overlay video in seconds
+    fade_out_start = overlay_duration - 1  # Start fade out 1 second before the overlay ends
+    fade_out_duration = 1  # Fade out duration in seconds
+
     subprocess.call([
         "ffmpeg",
-        "-i", prepend_video_clip,
         "-i", temp_video_file_with_audio,
-        "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]",
-        "-map", "[v]",
-        "-map", "[a]",
+        "-i", overlay_video,
+        "-filter_complex",
+        "[1:v]chromakey=0x00FF00:0.1:0.2[overlay_faded];"  # Key out green screen from overlay
+        "[0:v][overlay_faded]overlay=(W-w)/2:(H-h)/2:eof_action=pass:format=auto;",  # Overlay video on base image
+        "-map", "0:a",
         "-c:v", "libx264",  # You might adjust this depending on your needs
         "-c:a", "aac",      # AAC is a widely compatible audio codec
         "-strict", "experimental",
