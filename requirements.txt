@@ -1,0 +1,10 @@
+# Python dependencies for the Story to Video Converter
+# Install with: pip install -r requirements.txt
+# Or on Ubuntu: sudo apt install python3-pyqt5 python3-aiohttp
+
+PyQt5>=5.15.0
+aiohttp>=3.8.0
+
+# Note: On Ubuntu/Debian systems, it's recommended to use:
+# sudo apt install python3-pyqt5 python3-aiohttp
+# instead of pip install to avoid conflicts with system packages 
