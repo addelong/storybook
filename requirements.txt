@@ -1,14 +1,14 @@
-# Python dependencies for the Story to Video Converter (GUI Branch - YouTube Shorts)
+# Python dependencies for the Story to Video Converter
 # Install with: pip install -r requirements.txt
 # Or on Ubuntu: sudo apt install python3-pyqt5 python3-aiohttp
 
 PyQt5>=5.15.0
 aiohttp>=3.8.0
+openai>=1.30.0
+requests>=2.31.0
+tenacity>=8.3.0
+python-dotenv>=1.0.1
 
 # Note: On Ubuntu/Debian systems, it's recommended to use:
 # sudo apt install python3-pyqt5 python3-aiohttp
-# instead of pip install to avoid conflicts with system packages
-
-# Alternative: Use Poetry with pyproject.toml
-# pip install poetry
-# poetry install 
+# instead of pip install to avoid conflicts with system packages 

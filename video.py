@@ -32,8 +32,10 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
     fade_in_duration = 1  # Fade-in duration in seconds
 
     temp_video_file = "temp_video.mp4"
+    temp_video_file_with_audio = "temp_video_with_audio.mp4"  # Temporary file for video with audio
     temp_concat_file = "concat_list.txt"
     temp_music_file = "temp_music.mp3"
+    prepend_video_clip = "intro.mp4"
 
     # Copy background_music to ./bgmusic.mp3 to not have to worry about path separators
     subprocess.call(["cp", background_music, "./bgmusic.mp3"])
@@ -73,7 +75,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             segment_frames = int(segment_duration * 30)
 
             # Pre-process text to add line breaks if necessary
-            wrapped_text = insert_line_breaks(text, max_line_length=65)  # Adjust max_line_length as needed
+            wrapped_text = insert_line_breaks(text, max_line_length=65)  # GUI portraits favor shorter lines
 
 
             subprocess.call([
@@ -91,7 +93,11 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-t", str(segment_duration),  # Updated duration
             # add this to the end of the following line to add text to the video
             # , drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=120, drawtext=fontfile=/WINDOWS/fonts/ITCKRIST.TTF:text='{wrapped_text}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-240+(lh-10)
+<<<<<<< HEAD
             "-vf", f"scale=2304:4032, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=768x1344, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-360:color=black@0.5:t=fill:width=iw:height=180, drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{wrapped_text}':fontcolor=white:fontsize=34:x=(w-tw)/2:y=h-360+(lh-20)",
+=======
+            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-120:color=black@0.2:t=fill:width=iw:height=120, drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{wrapped_text}':fontcolor=white:fontsize=30:x=(w-tw)/2:y=h-120+(lh-20)",
+>>>>>>> gui-longform
             "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio
             "-y", segment_file
         ])
@@ -120,7 +126,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-stream_loop", str(num_loops),
         "-i", background_music,
         "-t", video_duration,
-        "-filter_complex", f"[0:a]volume=0.5,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
+        "-filter_complex", f"[0:a]volume=0.2,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
         "-map", "[a]",
         "-y", temp_music_file
     ])
@@ -137,11 +143,32 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-c:a", "aac",
         "-b:a", "192k",  # Ensure a higher audio bitrate for the output
         "-shortest",
-        "-y", output_video
+        "-y", temp_video_file_with_audio
     ])
+
+    overlay_video = "./overlay.mp4"
+    overlay_duration = 5.5  # Duration of the overlay video in seconds
+    fade_out_start = overlay_duration - 1  # Start fade out 1 second before the overlay ends
+    fade_out_duration = 1  # Fade out duration in seconds
+
+    subprocess.call([
+        "ffmpeg",
+        "-i", temp_video_file_with_audio,
+        "-i", overlay_video,
+        "-filter_complex",
+        "[1:v]chromakey=0x00FF00:0.1:0.2[overlay_faded];"  # Key out green screen from overlay
+        "[0:v][overlay_faded]overlay=(W-w)/2:(H-h)/2:eof_action=pass:format=auto;",  # Overlay video on base image
+        "-map", "0:a",
+        "-c:v", "libx264",  # You might adjust this depending on your needs
+        "-c:a", "aac",      # AAC is a widely compatible audio codec
+        "-strict", "experimental",
+        "-r", "30",         # This sets the frame rate to 24 frames per second
+         "-y", output_video
+     ])
 
     # Clean up temporary files
     os.remove(temp_video_file)
+    os.remove(temp_video_file_with_audio)
     os.remove(temp_concat_file)
     # os.remove(temp_concat_file_2)
     os.remove(temp_music_file)
