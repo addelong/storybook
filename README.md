@@ -11,11 +11,15 @@ Branches
 - `gui-longform`: Landscape (16:9), longer videos
 
 Workflow in the app
-1) Paste story text: alternate image descriptions and dialog in separate paragraphs
-2) Generate Dialog: creates TTS files in `out/dialog/`
-3) Generate Images: Stability image gen; optional seed and reference image
-4) Music: choose a file or click Auto Music (Jamendo)
-5) Compile Video: builds final `final_video.mp4`
+Simple Mode (recommended)
+1) Type a quick idea (optional) and click Make Video
+   - If only an idea is provided, the app writes the script for you
+   - It generates TTS, images, auto-picks music, and compiles the video
+   - Toggle “Use AI video” to try Runway-generated clips instead of images
+
+Advanced Mode (optional)
+- Prompts, seeds, reference image, Runway overrides/clip settings
+- Helper text explains each option; defaults work well for most cases
 
 Script and Runway
 - Generate Script: turns an idea into a story (OpenAI)
