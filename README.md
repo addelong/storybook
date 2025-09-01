@@ -6,3 +6,4 @@ New features (experimental):
 - Generate script from idea (OpenAI)
 - Optional image seed for consistency
 - Auto-pick royalty-free music via Jamendo (or browse)
+- Runway prototype: single-clip and multi-clip generation, with concatenation and music

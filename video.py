@@ -2,6 +2,7 @@ import subprocess
 import os
 import math
 import re
+from typing import List
 
 def extract_number(filename):
     """
@@ -177,3 +178,58 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
 
 # Example usage:
 # create_video_from_images_and_dialogs("images", "jpg", "background.mp3", "dialogs", "mp3", "output.mp4")
+
+
+def concat_runway_clips(clips: List[str], background_music: str, output_video: str):
+    temp_concat_file = "concat_list.txt"
+    temp_video_file = "temp_video.mp4"
+    temp_video_file_with_audio = "temp_video_with_audio.mp4"
+    temp_music_file = "temp_music.mp3"
+
+    with open(temp_concat_file, "w") as f:
+        for clip in clips:
+            f.write(f"file '{os.path.abspath(clip)}'\n")
+
+    subprocess.call([
+        "ffmpeg",
+        "-f", "concat",
+        "-safe", "0",
+        "-i", temp_concat_file,
+        "-c", "copy",
+        "-y", temp_video_file
+    ])
+
+    cmd = 'ffprobe -i {} -show_entries format=duration -v quiet -of csv="p=0"'.format(background_music)
+    bg_music_duration = subprocess.check_output(cmd).decode().strip()
+    cmd = 'ffprobe -i {} -show_entries format=duration -v quiet -of csv="p=0"'.format(temp_video_file)
+    video_duration = subprocess.check_output(cmd).decode().strip()
+    num_loops = math.ceil(float(video_duration) / float(bg_music_duration))
+
+    subprocess.call([
+        "ffmpeg",
+        "-stream_loop", str(num_loops),
+        "-i", background_music,
+        "-t", video_duration,
+        "-filter_complex", f"[0:a]volume=0.2,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
+        "-map", "[a]",
+        "-y", temp_music_file
+    ])
+
+    subprocess.call([
+        "ffmpeg",
+        "-i", temp_video_file,
+        "-i", temp_music_file,
+        "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=3[a]",
+        "-map", "0:v",
+        "-map", "[a]",
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-shortest",
+        "-y", temp_video_file_with_audio
+    ])
+
+    os.replace(temp_video_file_with_audio, output_video)
+    os.remove(temp_video_file)
+    os.remove(temp_music_file)
+    os.remove(temp_concat_file)

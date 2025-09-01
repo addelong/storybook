@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 out/music/*.mp3
+out/runway/*.mp4
 bgmusic.mp3
 final_video.mp4
 temp_*.mp4
