@@ -53,15 +53,20 @@ class MainApp(QWidget):
         self.use_runway_checkbox = QCheckBox("Use AI video (experimental)")
         self.make_video_button = QPushButton("Make Video")
         self.make_video_button.clicked.connect(self.make_video)
+        self.show_script_checkbox = QCheckBox("Show Script")
+        self.show_script_checkbox.setChecked(False)
+        self.show_script_checkbox.toggled.connect(lambda checked: self.story_text.setVisible(checked))
         self.simple_layout.addWidget(self.simple_idea_input)
         self.simple_layout.addWidget(self.use_runway_checkbox)
         self.simple_layout.addWidget(self.make_video_button)
+        self.simple_layout.addWidget(self.show_script_checkbox)
         self.layout.addLayout(self.simple_layout)
 
         # Story Text Section
         self.story_text = QTextEdit()
         self.story_text.setPlaceholderText("Enter your story here...")
         self.layout.addWidget(self.story_text)
+        self.story_text.setVisible(False)
 
         # Advanced container (collapsible)
         self.advanced_toggle = QPushButton("Show Advanced Options")
@@ -117,7 +122,9 @@ class MainApp(QWidget):
         self.seed_input.setPlaceholderText("e.g., 12345")
         self.seed_layout.addWidget(self.seed_label)
         self.seed_layout.addWidget(self.seed_input)
+        self.seed_input.setToolTip("Leave blank to auto-generate a stable seed from your story. Same seed + prompt yields consistent style.")
         self.advanced_layout.addLayout(self.seed_layout)
+        self.advanced_layout.addWidget(QLabel("Tip: Leave Seed empty to auto-generate from your story for consistent characters between runs."))
 
         # Reference image (image-to-image)
         self.ref_layout = QHBoxLayout()
@@ -133,7 +140,10 @@ class MainApp(QWidget):
         self.ref_layout.addWidget(self.ref_browse)
         self.ref_layout.addWidget(self.ref_strength_label)
         self.ref_layout.addWidget(self.ref_strength_input)
+        self.ref_path.setToolTip("Upload a clear, front-facing character or key object image (PNG/JPG) to keep identity consistent.")
+        self.ref_strength_input.setToolTip("How closely to follow the reference: 0.0 = mostly prompt, 1.0 = mostly reference. Try 0.6–0.8.")
         self.advanced_layout.addLayout(self.ref_layout)
+        self.advanced_layout.addWidget(QLabel("Reference Image: A clean headshot or object helps keep the same character each image. Strength 0.6–0.8 balances likeness and creativity."))
 
         # Background Music Selection
         self.bgm_layout = QHBoxLayout()
@@ -173,6 +183,8 @@ class MainApp(QWidget):
         self.buttons_layout.addWidget(self.generate_images_button)
         self.buttons_layout.addWidget(self.compile_video_button)
         self.buttons_layout.addWidget(self.runway_toggle)
+        # Advanced flow guidance and step buttons
+        self.advanced_layout.addWidget(QLabel("Advanced flow: 1) Generate Dialog → 2) Generate Images → 3) Compile Video"))
         self.advanced_layout.addLayout(self.buttons_layout)
         self.advanced_layout.addLayout(self.runway_multi_layout)
 
@@ -210,7 +222,11 @@ class MainApp(QWidget):
         # The first set is the image descriptions, and the second set is the dialog.
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
-        self.start_worker(get_dialog_tracks, paragraphs, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
+        worker = self.start_worker(get_dialog_tracks, paragraphs, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
+        try:
+            worker.finished.connect(lambda: self.generate_images_button.setEnabled(True))
+        except Exception:
+            pass
 
     def generate_images(self):
         # Split the story into lines, separated by two newlines. Separate them into two sets.
@@ -225,7 +241,8 @@ class MainApp(QWidget):
             strength_val = float(self.ref_strength_input.text().strip()) if self.ref_strength_input.text().strip() else 0.7
         except ValueError:
             strength_val = 0.7
-        self.start_worker(
+        self.compile_video_button.setEnabled(False)
+        worker = self.start_worker(
             generate_images,
             paragraphs,
             self.image_text.toPlainText(),
@@ -235,6 +252,10 @@ class MainApp(QWidget):
             ref_path,
             strength_val,
         )
+        try:
+            worker.finished.connect(lambda: self.compile_video_button.setEnabled(True))
+        except Exception:
+            pass
 
     def compile_video(self):
         story = self.story_text.toPlainText()
@@ -408,6 +429,7 @@ class MainApp(QWidget):
         self.active_workers.append(worker)  # Keep track of the worker
         worker.start()
         # Optionally, connect signals from the worker here (e.g., for progress updates)
+        return worker
 
 
     # Additional methods and logic for your scripts
