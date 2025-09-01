@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+out/music/*.mp3
+out/runway/*.mp4
+bgmusic.mp3
+final_video.mp4
+temp_*.mp4
+segment_*.mp4
+temp_music.mp3
+temp_video*.mp4
+concat_list.txt
+

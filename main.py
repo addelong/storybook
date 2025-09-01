@@ -9,7 +9,7 @@ from images import generate_images
 from text import generate_story
 from creds import stability_api_key, elevenlabs_api_key, voice_model_id
 from creds import jamendo_client_id
-from runway import generate_video_from_prompt
+from runway import generate_video_from_prompt, generate_clips_from_paragraphs
 from video import create_video_from_images_and_dialogs
 from creds import stability_api_key, elevenlabs_api_key, voice_model_id
 
@@ -135,11 +135,22 @@ class MainApp(QWidget):
         self.compile_video_button.clicked.connect(self.compile_video)
         self.runway_toggle = QPushButton("Runway: Generate Clip")
         self.runway_toggle.clicked.connect(self.generate_runway_clip)
+        self.runway_multi_layout = QHBoxLayout()
+        self.runway_clip_secs = QLineEdit()
+        self.runway_clip_secs.setPlaceholderText("Clip seconds (e.g., 5)")
+        self.runway_max_clips = QLineEdit()
+        self.runway_max_clips.setPlaceholderText("Max clips (optional)")
+        self.runway_compile_btn = QPushButton("Runway: Compile From Story")
+        self.runway_compile_btn.clicked.connect(self.generate_runway_from_story)
+        self.runway_multi_layout.addWidget(self.runway_clip_secs)
+        self.runway_multi_layout.addWidget(self.runway_max_clips)
+        self.runway_multi_layout.addWidget(self.runway_compile_btn)
         self.buttons_layout.addWidget(self.generate_dialog_button)
         self.buttons_layout.addWidget(self.generate_images_button)
         self.buttons_layout.addWidget(self.compile_video_button)
         self.buttons_layout.addWidget(self.runway_toggle)
         self.layout.addLayout(self.buttons_layout)
+        self.layout.addLayout(self.runway_multi_layout)
 
         # Set main layout
         self.setLayout(self.layout)
@@ -227,6 +238,36 @@ class MainApp(QWidget):
             # No UI for preview; just place file if generated
             if clip:
                 self.bgm_label.setText("Background Music:")
+        self.start_worker(run)
+
+    def generate_runway_from_story(self):
+        story = self.story_text.toPlainText()
+        paragraphs = story.split("\n\n")
+        try:
+            secs = int(self.runway_clip_secs.text().strip()) if self.runway_clip_secs.text().strip() else 5
+        except ValueError:
+            secs = 5
+        try:
+            maxc = int(self.runway_max_clips.text().strip()) if self.runway_max_clips.text().strip() else None
+        except ValueError:
+            maxc = None
+
+        async def run():
+            clips = await generate_clips_from_paragraphs(paragraphs, secs, maxc)
+            if not clips:
+                return
+            # auto-music if not set
+            music = self.bgm_file.text().strip()
+            if not music:
+                try:
+                    from music import find_thematic_track
+                    track_path = await find_thematic_track(story, jamendo_client_id)
+                    if track_path:
+                        music = track_path
+                except Exception:
+                    pass
+            from video import concat_runway_clips
+            concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
         self.start_worker(run)
 
     def start_worker(self, func, *args):
