@@ -1,6 +1,7 @@
 import sys
 import asyncio
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar
+import os
 from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal
 
 # Import necessary functions from your other scripts
@@ -152,6 +153,15 @@ class MainApp(QWidget):
         self.layout.addLayout(self.buttons_layout)
         self.layout.addLayout(self.runway_multi_layout)
 
+        # Runway overrides and progress
+        self.layout.addWidget(QLabel("Runway Prompt Overrides (optional, blank-line separated):"))
+        self.runway_overrides = QTextEdit()
+        self.runway_overrides.setPlaceholderText("Provide custom prompts per paragraph. If left empty, paragraphs are used.")
+        self.layout.addWidget(self.runway_overrides)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setValue(0)
+        self.layout.addWidget(self.progress_bar)
+
         # Set main layout
         self.setLayout(self.layout)
         self.setWindowTitle('Story to Video Converter')
@@ -243,6 +253,8 @@ class MainApp(QWidget):
     def generate_runway_from_story(self):
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
+        overrides_text = self.runway_overrides.toPlainText().strip()
+        overrides = overrides_text.split("\n\n") if overrides_text else []
         try:
             secs = int(self.runway_clip_secs.text().strip()) if self.runway_clip_secs.text().strip() else 5
         except ValueError:
@@ -253,7 +265,34 @@ class MainApp(QWidget):
             maxc = None
 
         async def run():
-            clips = await generate_clips_from_paragraphs(paragraphs, secs, maxc)
+            # Generate sequentially to track progress
+            total = len(paragraphs) if maxc is None else min(len(paragraphs), maxc)
+            self.progress_bar.setMaximum(total)
+            self.progress_bar.setValue(0)
+            os.makedirs("./out/runway", exist_ok=True)
+            clips = []
+            for idx, para in enumerate(paragraphs):
+                if maxc is not None and idx >= maxc:
+                    break
+                prompt = (overrides[idx].strip() if idx < len(overrides) and overrides[idx].strip() else para.strip())[:600]
+                clip = await generate_video_from_prompt(prompt, secs)
+                if clip:
+                    target = f"./out/runway/clip_{idx}.mp4"
+                    try:
+                        if os.path.abspath(clip) != os.path.abspath(target):
+                            try:
+                                os.replace(clip, target)
+                            except Exception:
+                                import shutil
+                                shutil.copyfile(clip, target)
+                        clips.append(target)
+                    except Exception:
+                        pass
+                # Update progress
+                try:
+                    self.progress_bar.setValue(min(idx + 1, total))
+                except Exception:
+                    pass
             if not clips:
                 return
             # auto-music if not set
