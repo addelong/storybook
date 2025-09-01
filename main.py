@@ -1,7 +1,8 @@
 import sys
 import asyncio
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar, QCheckBox
 import os
+import hashlib
 from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal
 
 # Import necessary functions from your other scripts
@@ -45,28 +46,51 @@ class MainApp(QWidget):
     def initUI(self):
         self.layout = QVBoxLayout()
 
-        # API Credentials Section
-        self.api_keys_layout = QHBoxLayout()
-        self.api_keys = {
-            'Stability API Key': QLineEdit(),
-            'ElevenLabs API Key': QLineEdit(),
-            'Voice Model ID': QLineEdit()
-        }
-        # Set default values for API keys here
-        self.api_keys['Stability API Key'].setText(stability_api_key if stability_api_key else 'your_stability_api_key')
-        self.api_keys['ElevenLabs API Key'].setText(elevenlabs_api_key if elevenlabs_api_key else 'your_elevenlabs_api_key')
-        self.api_keys['Voice Model ID'].setText(voice_model_id if voice_model_id else 'your_voice_model_id')  
-        for label, line_edit in self.api_keys.items():
-            self.api_keys_layout.addWidget(QLabel(label))
-            self.api_keys_layout.addWidget(line_edit)
-        self.layout.addLayout(self.api_keys_layout)
+        # Simple Mode Header
+        self.simple_layout = QHBoxLayout()
+        self.simple_idea_input = QLineEdit()
+        self.simple_idea_input.setPlaceholderText("Describe your video idea (optional)")
+        self.use_runway_checkbox = QCheckBox("Use AI video (experimental)")
+        self.make_video_button = QPushButton("Make Video")
+        self.make_video_button.clicked.connect(self.make_video)
+        self.simple_layout.addWidget(self.simple_idea_input)
+        self.simple_layout.addWidget(self.use_runway_checkbox)
+        self.simple_layout.addWidget(self.make_video_button)
+        self.layout.addLayout(self.simple_layout)
 
         # Story Text Section
         self.story_text = QTextEdit()
         self.story_text.setPlaceholderText("Enter your story here...")
         self.layout.addWidget(self.story_text)
 
-        # Script generator controls
+        # Advanced container (collapsible)
+        self.advanced_toggle = QPushButton("Show Advanced Options")
+        self.advanced_toggle.setCheckable(True)
+        self.advanced_toggle.setChecked(False)
+        self.advanced_toggle.toggled.connect(self.toggle_advanced)
+        self.layout.addWidget(self.advanced_toggle)
+
+        self.advanced_container = QWidget()
+        self.advanced_container.setVisible(False)
+        self.advanced_layout = QVBoxLayout(self.advanced_container)
+        self.advanced_layout.addWidget(QLabel("Advanced options are optional. Defaults are smart and work well. Use these if you need precise control (prompts, seeds, reference images, Runway overrides)."))
+
+        # API Credentials Section (Advanced)
+        self.api_keys_layout = QHBoxLayout()
+        self.api_keys = {
+            'Stability API Key': QLineEdit(),
+            'ElevenLabs API Key': QLineEdit(),
+            'Voice Model ID': QLineEdit()
+        }
+        self.api_keys['Stability API Key'].setText(stability_api_key if stability_api_key else 'your_stability_api_key')
+        self.api_keys['ElevenLabs API Key'].setText(elevenlabs_api_key if elevenlabs_api_key else 'your_elevenlabs_api_key')
+        self.api_keys['Voice Model ID'].setText(voice_model_id if voice_model_id else 'your_voice_model_id')
+        for label, line_edit in self.api_keys.items():
+            self.api_keys_layout.addWidget(QLabel(label))
+            self.api_keys_layout.addWidget(line_edit)
+        self.advanced_layout.addLayout(self.api_keys_layout)
+
+        # Script generator controls (Advanced)
         self.script_layout = QHBoxLayout()
         self.prompt_input = QLineEdit()
         self.prompt_input.setPlaceholderText("Enter a story idea and click Generate Script")
@@ -74,17 +98,17 @@ class MainApp(QWidget):
         self.generate_script_button.clicked.connect(self.generate_script)
         self.script_layout.addWidget(self.prompt_input)
         self.script_layout.addWidget(self.generate_script_button)
-        self.layout.addLayout(self.script_layout)
+        self.advanced_layout.addLayout(self.script_layout)
 
         # Image Generation Text Section (Optional)
         self.image_text = QTextEdit()
         self.image_negative_text = QTextEdit()
         self.image_text.setText("beautiful, kid friendly, perfect quality, 3d animated movie still, pixar, digital art, color, coherent, uhd, detailed face, looks good, expressive, magical, ")
         self.image_negative_text.setText("blurry, bad, sloppy, incoherent, weird faces, messed up, weird hands, too many limbs or digits, anatomically incorrect, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions, maniacal smiling")
-        self.layout.addWidget(QLabel("Image Generation Prompt"))
-        self.layout.addWidget(self.image_text)
-        self.layout.addWidget(QLabel("Image Generation Negative Prompt"))
-        self.layout.addWidget(self.image_negative_text)
+        self.advanced_layout.addWidget(QLabel("Image Generation Prompt"))
+        self.advanced_layout.addWidget(self.image_text)
+        self.advanced_layout.addWidget(QLabel("Image Generation Negative Prompt"))
+        self.advanced_layout.addWidget(self.image_negative_text)
 
         # Seed for character consistency
         self.seed_layout = QHBoxLayout()
@@ -93,7 +117,7 @@ class MainApp(QWidget):
         self.seed_input.setPlaceholderText("e.g., 12345")
         self.seed_layout.addWidget(self.seed_label)
         self.seed_layout.addWidget(self.seed_input)
-        self.layout.addLayout(self.seed_layout)
+        self.advanced_layout.addLayout(self.seed_layout)
 
         # Reference image (image-to-image)
         self.ref_layout = QHBoxLayout()
@@ -109,7 +133,7 @@ class MainApp(QWidget):
         self.ref_layout.addWidget(self.ref_browse)
         self.ref_layout.addWidget(self.ref_strength_label)
         self.ref_layout.addWidget(self.ref_strength_input)
-        self.layout.addLayout(self.ref_layout)
+        self.advanced_layout.addLayout(self.ref_layout)
 
         # Background Music Selection
         self.bgm_layout = QHBoxLayout()
@@ -123,7 +147,7 @@ class MainApp(QWidget):
         self.bgm_layout.addWidget(self.bgm_file)
         self.bgm_layout.addWidget(self.bgm_button)
         self.bgm_layout.addWidget(self.auto_music_button)
-        self.layout.addLayout(self.bgm_layout)
+        self.advanced_layout.addLayout(self.bgm_layout)
 
         # Control Buttons
         self.buttons_layout = QHBoxLayout()
@@ -149,17 +173,22 @@ class MainApp(QWidget):
         self.buttons_layout.addWidget(self.generate_images_button)
         self.buttons_layout.addWidget(self.compile_video_button)
         self.buttons_layout.addWidget(self.runway_toggle)
-        self.layout.addLayout(self.buttons_layout)
-        self.layout.addLayout(self.runway_multi_layout)
+        self.advanced_layout.addLayout(self.buttons_layout)
+        self.advanced_layout.addLayout(self.runway_multi_layout)
 
-        # Runway overrides and progress
-        self.layout.addWidget(QLabel("Runway Prompt Overrides (optional, blank-line separated):"))
+        # Runway overrides and progress (Advanced)
+        self.advanced_layout.addWidget(QLabel("Runway Prompt Overrides (optional, blank-line separated):"))
         self.runway_overrides = QTextEdit()
         self.runway_overrides.setPlaceholderText("Provide custom prompts per paragraph. If left empty, paragraphs are used.")
-        self.layout.addWidget(self.runway_overrides)
+        self.advanced_layout.addWidget(self.runway_overrides)
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
-        self.layout.addWidget(self.progress_bar)
+        self.advanced_layout.addWidget(self.progress_bar)
+
+        self.layout.addWidget(self.advanced_container)
+
+        # Progress bar visibility off by default
+        self.progress_bar.setVisible(False)
 
         # Set main layout
         self.setLayout(self.layout)
@@ -221,6 +250,65 @@ class MainApp(QWidget):
             self.story_text.setText(script)
         self.start_worker(run)
 
+    def make_video(self):
+        idea = self.simple_idea_input.text().strip()
+        use_runway = self.use_runway_checkbox.isChecked()
+
+        async def run():
+            story_text = self.story_text.toPlainText().strip()
+            if not story_text and idea:
+                # Auto-generate script from idea
+                gen = await generate_story(idea)
+                story_text = gen or idea
+                self.story_text.setText(story_text)
+
+            paragraphs = story_text.split("\n\n") if story_text else []
+            # Derive seed from story for stable character consistency
+            seed_val = int(hashlib.sha256((story_text or idea).encode("utf-8")).hexdigest()[:8], 16) if (story_text or idea) else None
+
+            # Auto music attempt
+            music = self.bgm_file.text().strip()
+            if not music:
+                try:
+                    from music import find_thematic_track
+                    track_path = await find_thematic_track(story_text or idea, jamendo_client_id)
+                    if track_path:
+                        music = track_path
+                        self.bgm_file.setText(music)
+                except Exception:
+                    pass
+
+            if use_runway and paragraphs:
+                # Minimal runway path: 5s per clip, up to 12 clips (1 min)
+                secs = 5
+                maxc = 12
+                self.progress_bar.setVisible(True)
+                self.progress_bar.setMaximum(min(len(paragraphs), maxc))
+                self.progress_bar.setValue(0)
+                from runway import generate_video_from_prompt
+                clips = []
+                for idx, para in enumerate(paragraphs):
+                    if idx >= maxc:
+                        break
+                    clip = await generate_video_from_prompt(para[:600], secs)
+                    if clip:
+                        clips.append(clip)
+                    self.progress_bar.setValue(idx + 1)
+                if clips:
+                    from video import concat_runway_clips
+                    concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
+                self.progress_bar.setVisible(False)
+                return
+
+            if paragraphs:
+                # Generate dialog (TTS)
+                await get_dialog_tracks(paragraphs[1::2], self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
+                # Generate images for description paragraphs
+                await generate_images(paragraphs[0::2], self.image_text.toPlainText(), self.image_negative_text.toPlainText(), self.api_keys['Stability API Key'].text(), seed_val)
+                # Compile
+                create_video_from_images_and_dialogs("./out/images", "png", music if music else self.bgm_file.text(), "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+        self.start_worker(run)
+
     def auto_music(self):
         # Placeholder: choose an existing local file if jamendo_client_id not set
         if not jamendo_client_id:
@@ -264,6 +352,7 @@ class MainApp(QWidget):
             maxc = None
 
         async def run():
+            self.progress_bar.setVisible(True)
             # Generate sequentially to track progress
             total = len(paragraphs) if maxc is None else min(len(paragraphs), maxc)
             self.progress_bar.setMaximum(total)
@@ -306,7 +395,11 @@ class MainApp(QWidget):
                     pass
             from video import concat_runway_clips
             concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
+            self.progress_bar.setVisible(False)
         self.start_worker(run)
+
+    def toggle_advanced(self, checked):
+        self.advanced_container.setVisible(checked)
 
     def start_worker(self, func, *args):
         """ Starts a worker thread to run a function """
