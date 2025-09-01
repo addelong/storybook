@@ -49,8 +49,10 @@ class MainApp(QWidget):
 
         # Simple Mode Header
         self.simple_layout = QHBoxLayout()
-        self.simple_idea_input = QLineEdit()
+        self.simple_idea_input = QTextEdit()
         self.simple_idea_input.setPlaceholderText("Describe your video idea (optional)")
+        self.simple_idea_input.setMinimumHeight(120)
+        self.simple_idea_input.setAcceptRichText(False)
         self.use_runway_checkbox = QCheckBox("Use AI video (experimental)")
         self.make_video_button = QPushButton("Make Video")
         self.make_video_button.clicked.connect(self.make_video)
@@ -273,7 +275,7 @@ class MainApp(QWidget):
         self.start_worker(run)
 
     def make_video(self):
-        idea = self.simple_idea_input.text().strip()
+        idea = self.simple_idea_input.toPlainText().strip()
         use_runway = self.use_runway_checkbox.isChecked()
 
         async def run():
@@ -422,6 +424,12 @@ class MainApp(QWidget):
 
     def toggle_advanced(self, checked):
         self.advanced_container.setVisible(checked)
+        try:
+            # Recompute window size when toggling sections to avoid leftover height
+            self.adjustSize()
+            self.resize(self.sizeHint())
+        except Exception:
+            pass
 
     def start_worker(self, func, *args):
         """ Starts a worker thread to run a function """
