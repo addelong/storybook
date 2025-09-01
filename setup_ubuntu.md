@@ -14,6 +14,7 @@ This application creates storybook-style videos from text using AI-generated ima
    - OpenAI API key (for text generation)
    - ElevenLabs API key (for text-to-speech)
    - Stability AI API key (for image generation)
+   - Jamendo client ID (for auto-music; optional)
 
 ## Setup Instructions
 
@@ -48,7 +49,7 @@ python3 main.py
 2. Enter your story text (alternating image descriptions and dialog)
 3. Click "Generate Dialog" to create audio tracks
 4. Click "Generate Images" to create images
-5. Select background music file
+5. Select background music file or click "Auto Music" (Jamendo)
 6. Click "Compile Video" to create the final video
 
 ## File Structure

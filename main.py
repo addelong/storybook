@@ -6,6 +6,10 @@ from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal
 # Import necessary functions from your other scripts
 from dialog import get_dialog_tracks
 from images import generate_images
+from text import generate_story
+from creds import stability_api_key, elevenlabs_api_key, voice_model_id
+from creds import jamendo_client_id
+from runway import generate_video_from_prompt
 from video import create_video_from_images_and_dialogs
 from creds import stability_api_key, elevenlabs_api_key, voice_model_id
 
@@ -62,6 +66,16 @@ class MainApp(QWidget):
         self.story_text.setPlaceholderText("Enter your story here...")
         self.layout.addWidget(self.story_text)
 
+        # Script generator controls
+        self.script_layout = QHBoxLayout()
+        self.prompt_input = QLineEdit()
+        self.prompt_input.setPlaceholderText("Enter a story idea and click Generate Script")
+        self.generate_script_button = QPushButton("Generate Script")
+        self.generate_script_button.clicked.connect(self.generate_script)
+        self.script_layout.addWidget(self.prompt_input)
+        self.script_layout.addWidget(self.generate_script_button)
+        self.layout.addLayout(self.script_layout)
+
         # Image Generation Text Section (Optional)
         self.image_text = QTextEdit()
         self.image_negative_text = QTextEdit()
@@ -72,15 +86,43 @@ class MainApp(QWidget):
         self.layout.addWidget(QLabel("Image Generation Negative Prompt"))
         self.layout.addWidget(self.image_negative_text)
 
+        # Seed for character consistency
+        self.seed_layout = QHBoxLayout()
+        self.seed_label = QLabel("Image Seed (optional):")
+        self.seed_input = QLineEdit()
+        self.seed_input.setPlaceholderText("e.g., 12345")
+        self.seed_layout.addWidget(self.seed_label)
+        self.seed_layout.addWidget(self.seed_input)
+        self.layout.addLayout(self.seed_layout)
+
+        # Reference image (image-to-image)
+        self.ref_layout = QHBoxLayout()
+        self.ref_label = QLabel("Reference Image (optional):")
+        self.ref_path = QLineEdit()
+        self.ref_browse = QPushButton("Browse")
+        self.ref_browse.clicked.connect(self.browse_ref_image)
+        self.ref_strength_label = QLabel("Strength:")
+        self.ref_strength_input = QLineEdit()
+        self.ref_strength_input.setPlaceholderText("0.0-1.0, default 0.7")
+        self.ref_layout.addWidget(self.ref_label)
+        self.ref_layout.addWidget(self.ref_path)
+        self.ref_layout.addWidget(self.ref_browse)
+        self.ref_layout.addWidget(self.ref_strength_label)
+        self.ref_layout.addWidget(self.ref_strength_input)
+        self.layout.addLayout(self.ref_layout)
+
         # Background Music Selection
         self.bgm_layout = QHBoxLayout()
         self.bgm_label = QLabel("Background Music:")
         self.bgm_file = QLineEdit()
         self.bgm_button = QPushButton("Browse")
         self.bgm_button.clicked.connect(self.browse_music)
+        self.auto_music_button = QPushButton("Auto Music")
+        self.auto_music_button.clicked.connect(self.auto_music)
         self.bgm_layout.addWidget(self.bgm_label)
         self.bgm_layout.addWidget(self.bgm_file)
         self.bgm_layout.addWidget(self.bgm_button)
+        self.bgm_layout.addWidget(self.auto_music_button)
         self.layout.addLayout(self.bgm_layout)
 
         # Control Buttons
@@ -91,9 +133,12 @@ class MainApp(QWidget):
         self.generate_images_button.clicked.connect(self.generate_images)
         self.compile_video_button = QPushButton("Compile Video")
         self.compile_video_button.clicked.connect(self.compile_video)
+        self.runway_toggle = QPushButton("Runway: Generate Clip")
+        self.runway_toggle.clicked.connect(self.generate_runway_clip)
         self.buttons_layout.addWidget(self.generate_dialog_button)
         self.buttons_layout.addWidget(self.generate_images_button)
         self.buttons_layout.addWidget(self.compile_video_button)
+        self.buttons_layout.addWidget(self.runway_toggle)
         self.layout.addLayout(self.buttons_layout)
 
         # Set main layout
@@ -104,6 +149,11 @@ class MainApp(QWidget):
         filename, _ = QFileDialog.getOpenFileName(self, "Select Background Music", "", "Audio Files (*.mp3 *.wav)")
         if filename:
             self.bgm_file.setText(filename)
+
+    def browse_ref_image(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Select Reference Image", "", "Images (*.png *.jpg *.jpeg)")
+        if filename:
+            self.ref_path.setText(filename)
 
     def generate_dialog(self):
         # Split the story into lines, separated by two newlines. Separate them into two sets.
@@ -119,12 +169,65 @@ class MainApp(QWidget):
         # The first set is the image descriptions, and the second set is the dialog.
         story_text = self.story_text.toPlainText()
         paragraphs = story_text.split("\n\n")
-        self.start_worker(generate_images, paragraphs, self.image_text.toPlainText(), self.image_negative_text.toPlainText(), self.api_keys['Stability API Key'].text())
+        seed_text = self.seed_input.text().strip()
+        seed_val = int(seed_text) if seed_text.isdigit() else None
+        ref_path = self.ref_path.text().strip() or None
+        try:
+            strength_val = float(self.ref_strength_input.text().strip()) if self.ref_strength_input.text().strip() else 0.7
+        except ValueError:
+            strength_val = 0.7
+        self.start_worker(
+            generate_images,
+            paragraphs,
+            self.image_text.toPlainText(),
+            self.image_negative_text.toPlainText(),
+            self.api_keys['Stability API Key'].text(),
+            seed_val,
+            ref_path,
+            strength_val,
+        )
 
     def compile_video(self):
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
         self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+
+    def generate_script(self):
+        idea = self.prompt_input.text().strip()
+        if not idea:
+            return
+        async def run():
+            script = await generate_story(idea)
+            self.story_text.setText(script)
+        self.start_worker(run)
+
+    def auto_music(self):
+        # Placeholder: choose an existing local file if jamendo_client_id not set
+        if not jamendo_client_id:
+            filename, _ = QFileDialog.getOpenFileName(self, "Select Background Music", "", "Audio Files (*.mp3 *.wav)")
+            if filename:
+                self.bgm_file.setText(filename)
+            return
+        # Defer import to avoid hard dependency
+        try:
+            from music import find_thematic_track
+        except Exception:
+            return
+        story = self.story_text.toPlainText()
+        async def run():
+            track_path = await find_thematic_track(story, jamendo_client_id)
+            if track_path:
+                self.bgm_file.setText(track_path)
+        self.start_worker(run)
+
+    def generate_runway_clip(self):
+        prompt = self.story_text.toPlainText()[:500]
+        async def run():
+            clip = await generate_video_from_prompt(prompt, 5)
+            # No UI for preview; just place file if generated
+            if clip:
+                self.bgm_label.setText("Background Music:")
+        self.start_worker(run)
 
     def start_worker(self, func, *args):
         """ Starts a worker thread to run a function """
