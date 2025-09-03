@@ -239,6 +239,21 @@ class MainApp(QWidget):
         except Exception:
             pass
 
+    def _write_story_to_out(self, text: str):
+        try:
+            os.makedirs("./out", exist_ok=True)
+            with open("./out/story.txt", "w", encoding="utf-8") as f:
+                f.write((text or "").strip() + "\n")
+        except Exception:
+            pass
+
+    def _read_story_from_out(self) -> str:
+        try:
+            with open("./out/story.txt", "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception:
+            return ""
+
     def browse_music(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Select Background Music", "", "Audio Files (*.mp3 *.wav)")
         if filename:
@@ -305,8 +320,10 @@ class MainApp(QWidget):
             pass
 
     def compile_video(self):
-        story = self.story_text.toPlainText()
-        paragraphs = story.split("\n\n")
+        story = self._read_story_from_out().strip()
+        if not story:
+            story = self.story_text.toPlainText()
+        paragraphs = story.split("\n\n") if story else []
         # Pre-check image/dialog counts to avoid runtime crash
         try:
             images = sorted([f for f in os.listdir("./out/images") if f.endswith("png")])
@@ -392,6 +409,8 @@ class MainApp(QWidget):
                 self._ui(lambda: self.show_script_checkbox.setChecked(True))
                 self._ui(lambda: self.story_text.setVisible(True))
                 self._ui(lambda: self.story_text.setReadOnly(True))
+                # Save full generated script immediately
+                self._write_story_to_out(story_text)
             elif story_text:
                 # User provided a script; show it so they can see what will be used
                 self._ui(lambda: self.show_script_checkbox.setChecked(True))
@@ -412,6 +431,8 @@ class MainApp(QWidget):
             for i in range(pair_count):
                 trimmed_paragraphs.append(image_lines[i])
                 trimmed_paragraphs.append(dialog_lines[i])
+            # Persist the trimmed script for reliable retries
+            self._write_story_to_out("\n\n".join(trimmed_paragraphs))
             # Derive seed from story for stable character consistency
             seed_val = int(hashlib.sha256((story_text or idea).encode("utf-8")).hexdigest()[:8], 16) if (story_text or idea) else None
 
@@ -488,7 +509,7 @@ class MainApp(QWidget):
         self.start_worker(run)
 
     def preview_subtitles(self):
-        story = self.story_text.toPlainText().strip()
+        story = self._read_story_from_out().strip() or self.story_text.toPlainText().strip()
         if not self.preview_subs_checkbox.isChecked() or not story:
             return
         paragraphs = story.split("\n\n")
