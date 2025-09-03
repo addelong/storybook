@@ -22,6 +22,9 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
     user = (
         f"Style: {style}.\n\n"
         f"Write a short, self-contained story with 8-14 paragraphs total, alternating image and dialog as specified.\n"
+        f"Make the images concretely depict the exact setting/object/character that the dialog references next.\n"
+        f"Keep proper nouns and key objects consistent across paragraphs.\n"
+        f"Avoid generic backgrounds; include salient props the character mentions.\n\n"
         f"Topic/Prompt:\n{prompt}\n"
     )
 

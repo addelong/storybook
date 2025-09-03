@@ -25,20 +25,23 @@ async def find_thematic_track(theme_text: str, jamendo_client_id: str) -> Option
     theme = (theme_text or "").lower()
     tag = "happy"
     if any(k in theme for k in ["sad", "melancholy", "lonely"]):
-        tag = "sad"
+        tag = "calm"
     elif any(k in theme for k in ["adventure", "journey", "hero"]):
-        tag = "epic"
+        tag = "uplifting"
     elif any(k in theme for k in ["calm", "peaceful", "gentle"]):
-        tag = "ambient"
+        tag = "acoustic"
+
+    # Prefer kid-friendly, light genres/moods
+    preferred_moods = "happy,bright,cheerful,playful,acoustic,ukulele,whistle,light"
 
     params = {
         "client_id": jamendo_client_id,
         "format": "json",
         "audioformat": "mp31",
         "include": "musicinfo+licenses",
-        "fuzzytags": tag,
+        "fuzzytags": f"{tag},{preferred_moods}",
         "limit": 1,
-        "order": "popularity_total_desc",
+        "order": "relevance_desc",
         "licenses": "cc_by-sa,cc_by,cc_by-nc,cc_by-nc-sa,cc0",
     }
 

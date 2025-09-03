@@ -84,7 +84,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             segment_frames = int(segment_duration * 30)
 
             # Pre-process text to add line breaks if necessary
-            wrapped_text = insert_line_breaks(text, max_line_length=100)  # Adjust max_line_length as needed
+            wrapped_text = insert_line_breaks(text, max_line_length=48)
 
 
             subprocess.call([
@@ -102,8 +102,9 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-t", str(segment_duration),  # Updated duration
             # add this to the end of the following line to add text to the video
             # , drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=120, drawtext=fontfile=/WINDOWS/fonts/ITCKRIST.TTF:text='{wrapped_text}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-240+(lh-10)
-            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-120:color=black@0.2:t=fill:width=iw:height=120, drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{wrapped_text}':fontcolor=white:fontsize=30:x=(w-tw)/2:y=h-120+(lh-20)",
-            "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000}",  # Delay the audio
+            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-200:color=black@0.35:t=fill:width=iw-160:height=160:x=80, drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{wrapped_text}':fontcolor=white:fontsize=30:x=(w-tw)/2:y=h-200+(lh-20)",
+            # Make dialog louder relative to bgm later by normalizing per segment
+            "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000},volume=1.35",
             "-y", segment_file
         ])
             concat_file.write(f"file '{segment_file}'\n")
@@ -181,8 +182,8 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-i", temp_video_file_with_audio,
         "-i", overlay_video,
         "-filter_complex",
-        "[1:v]chromakey=0x00FF00:0.1:0.2[overlay_faded];"  # Key out green screen from overlay
-        "[0:v][overlay_faded]overlay=(W-w)/2:(H-h)/2:eof_action=pass:format=auto;",  # Overlay video on base image
+        "[1:v]chromakey=0x00FF00:0.1:0.2,scale=iw*0.6:-2[overlay_faded];"  # Key out green and scale overlay smaller
+        "[0:v][overlay_faded]overlay=(W-w)/2:(H-h)/2-220:eof_action=pass:format=auto;",  # Move overlay up to avoid subtitles
         "-map", "0:a",
         "-c:v", "libx264",  # You might adjust this depending on your needs
         "-c:a", "aac",      # AAC is a widely compatible audio codec
