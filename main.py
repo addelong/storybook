@@ -255,9 +255,16 @@ class MainApp(QWidget):
         # The first set is the image descriptions, and the second set is the dialog.
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
-        worker = self.start_worker(get_dialog_tracks, paragraphs, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
+        dialog_lines = paragraphs[1::2]
+        # Busy progress for Advanced button
+        self._ui(lambda: self.simple_status.setText("Generating dialog (TTS)..."))
+        self._ui(lambda: self.simple_progress.setRange(0, 0))
+        self._ui(lambda: self.simple_progress.setVisible(True))
+        worker = self.start_worker(get_dialog_tracks, dialog_lines, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
         try:
             worker.finished.connect(lambda: self.generate_images_button.setEnabled(True))
+            worker.finished.connect(lambda: self.simple_progress.setVisible(False))
+            worker.finished.connect(lambda: self.simple_status.setText("Dialog ready."))
         except Exception:
             pass
 
@@ -267,6 +274,7 @@ class MainApp(QWidget):
         # The first set is the image descriptions, and the second set is the dialog.
         story_text = self.story_text.toPlainText()
         paragraphs = story_text.split("\n\n")
+        image_lines = paragraphs[0::2]
         seed_text = self.seed_input.text().strip()
         seed_val = int(seed_text) if seed_text.isdigit() else None
         ref_path = self.ref_path.text().strip() or None
@@ -275,9 +283,13 @@ class MainApp(QWidget):
         except ValueError:
             strength_val = 0.7
         self.compile_video_button.setEnabled(False)
+        # Busy progress for Advanced button
+        self._ui(lambda: self.simple_status.setText("Generating images..."))
+        self._ui(lambda: self.simple_progress.setRange(0, 0))
+        self._ui(lambda: self.simple_progress.setVisible(True))
         worker = self.start_worker(
             generate_images,
-            paragraphs,
+            image_lines,
             self.image_text.toPlainText(),
             self.image_negative_text.toPlainText(),
             self.api_keys['Stability API Key'].text(),
@@ -287,6 +299,8 @@ class MainApp(QWidget):
         )
         try:
             worker.finished.connect(lambda: self.compile_video_button.setEnabled(True))
+            worker.finished.connect(lambda: self.simple_progress.setVisible(False))
+            worker.finished.connect(lambda: self.simple_status.setText("Images ready."))
         except Exception:
             pass
 
