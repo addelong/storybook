@@ -352,6 +352,16 @@ class MainApp(QWidget):
         voice_id = self.api_keys['Voice Model ID'].text()
         current_bgm = self.bgm_file.text().strip()
 
+        # Immediately show progress in Simple Mode
+        if not story_text_initial and idea:
+            self._ui(lambda: self.simple_status.setText("Generating script..."))
+            self._ui(lambda: self.simple_progress.setRange(0, 0))
+            self._ui(lambda: self.simple_progress.setVisible(True))
+        else:
+            self._ui(lambda: self.simple_status.setText("Starting..."))
+            self._ui(lambda: self.simple_progress.setRange(0, 0))
+            self._ui(lambda: self.simple_progress.setVisible(True))
+
         async def run():
             story_text = story_text_initial
             if not story_text and idea:
@@ -436,6 +446,9 @@ class MainApp(QWidget):
                 self._ui(lambda: self.simple_progress.setValue(3))
                 self._ui(lambda: self.simple_progress.setVisible(False))
                 self._ui(lambda: self.simple_status.setText("Done."))
+            else:
+                # Nothing to do; hide spinner
+                self._ui(lambda: self.simple_progress.setVisible(False))
         self.start_worker(run)
 
     def preview_subtitles(self):
