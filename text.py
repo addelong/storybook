@@ -6,11 +6,11 @@ client = AsyncOpenAI(api_key=openai_api_key)
 
 async def generate_story(prompt: str, style: str = "storybook") -> str:
     system = (
-        "You are a children’s screenwriter. Produce text in an exact, simple format:\n"
+        "You are a children's screenwriter. Produce text in an exact, simple format:\n"
         "- Alternate paragraphs: (1) Image Description, then (2) Dialog, and repeat.\n"
         "- Separate each paragraph with a single blank line.\n"
-        "- Image paragraphs: 1–3 vivid sentences describing a single illustration (no dialogue).\n"
-        "- Dialog paragraphs: 1–2 short lines a character speaks (use quotes, optional speaker name).\n"
+        "- Image paragraphs: 1-3 vivid sentences describing a single illustration (no dialogue).\n"
+        "- Dialog paragraphs: 1-2 short lines a character speaks (use quotes, optional speaker name).\n"
         "- Keep it gentle, imaginative, and age-appropriate.\n\n"
         "Example output format (do not label sections):\n"
         "A small fox stands on a riverbank at dusk, fireflies drifting above the water. The forest glows with warm, mossy light.\n\n"
@@ -21,7 +21,10 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
 
     user = (
         f"Style: {style}.\n\n"
-        f"Write a short, self-contained story with 8–14 paragraphs total, alternating image and dialog as specified.\n"
+        f"Write a short, self-contained story with 8-14 paragraphs total, alternating image and dialog as specified.\n"
+        f"Make the images concretely depict the exact setting/object/character that the dialog references next.\n"
+        f"Keep proper nouns and key objects consistent across paragraphs.\n"
+        f"Avoid generic backgrounds; include salient props the character mentions.\n\n"
         f"Topic/Prompt:\n{prompt}\n"
     )
 
