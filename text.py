@@ -9,7 +9,7 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
         "You are a children's screenwriter. Produce text in an exact, simple format:\n"
         "- Alternate paragraphs: (1) Image Description, then (2) Dialog, and repeat.\n"
         "- Separate each paragraph with a single blank line.\n"
-        "- Image paragraphs: 1-3 vivid sentences describing a single illustration to accompany the next dialog paragraph.\n"
+        "- Image paragraphs: 1-3 vivid sentences that will be used as prompts to an AI image generator to create an illustration for the NEXT dialog paragraph. Each image description must stand alone and include all necessary context (character names, outfits, setting, lighting, mood, key props), because images are generated independently.\n"
         "- Dialog paragraphs: 1-2 short lines of the actual story content.\n"
         "- Keep it gentle, imaginative, and age-appropriate.\n\n"
         "Example output format (do not label sections):\n"
@@ -22,6 +22,7 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
     user = (
         f"Style: {style}.\n\n"
         f"Write a short, self-contained story with AT LEAST 20 paragraphs total (10 image paragraphs and 10 dialog paragraphs), strictly alternating image and dialog as specified. End on a dialog paragraph.\n"
+        f"For image paragraphs, remember they are direct prompts to an AI image model. Include consistent character names, age, clothing, colors, setting, camera framing, lighting and mood, and any specific objects referenced by the NEXT dialog paragraph.\n"
         f"Ensure each image paragraph concretely depicts the exact setting/object/character that the following dialog references.\n"
         f"Keep proper nouns and key objects consistent across paragraphs.\n"
         f"Avoid generic backgrounds; include salient props the character mentions.\n\n"

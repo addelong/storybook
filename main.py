@@ -366,17 +366,41 @@ class MainApp(QWidget):
             story_text = story_text_initial
             if not story_text and idea:
                 # Auto-generate script from idea
-                gen = await generate_story(idea)
-                story_text = gen or idea
+                try:
+                    gen = await generate_story(idea)
+                except Exception as e:
+                    self._ui(lambda: self.simple_status.setText(f"Script generation failed: {e}"))
+                    self._ui(lambda: self.simple_progress.setVisible(False))
+                    return
+                story_text = (gen or "").strip()
+                if not story_text:
+                    self._ui(lambda: self.simple_status.setText("No script returned. Please try again or enter a script."))
+                    self._ui(lambda: self.simple_progress.setVisible(False))
+                    return
                 self._ui(lambda s=story_text: self.story_text.setText(s))
                 self._ui(lambda: self.show_script_checkbox.setChecked(True))
+                self._ui(lambda: self.story_text.setVisible(True))
                 self._ui(lambda: self.story_text.setReadOnly(True))
             elif story_text:
                 # User provided a script; show it so they can see what will be used
                 self._ui(lambda: self.show_script_checkbox.setChecked(True))
+                self._ui(lambda: self.story_text.setVisible(True))
                 self._ui(lambda: self.story_text.setReadOnly(True))
 
             paragraphs = story_text.split("\n\n") if story_text else []
+            # Compute paired lines for generation; trim to the minimum to avoid mismatches
+            image_lines = paragraphs[0::2]
+            dialog_lines = paragraphs[1::2]
+            pair_count = min(len(image_lines), len(dialog_lines))
+            if pair_count == 0:
+                self._ui(lambda: self.simple_status.setText("Script format invalid. Please ensure it alternates image and dialog paragraphs."))
+                self._ui(lambda: self.simple_progress.setVisible(False))
+                return
+            # Trimmed paragraphs to keep compile in sync with generated assets
+            trimmed_paragraphs = []
+            for i in range(pair_count):
+                trimmed_paragraphs.append(image_lines[i])
+                trimmed_paragraphs.append(dialog_lines[i])
             # Derive seed from story for stable character consistency
             seed_val = int(hashlib.sha256((story_text or idea).encode("utf-8")).hexdigest()[:8], 16) if (story_text or idea) else None
 
@@ -392,17 +416,17 @@ class MainApp(QWidget):
                 except Exception:
                     pass
 
-            if use_runway and paragraphs:
+            if use_runway and trimmed_paragraphs:
                 # Minimal runway path: 5s per clip, up to 12 clips (1 min)
                 secs = 5
                 maxc = 12
                 self._ui(lambda: self.simple_progress.setVisible(True))
-                self._ui(lambda: self.simple_progress.setMaximum(min(len(paragraphs), maxc)))
+                self._ui(lambda: self.simple_progress.setMaximum(min(len(trimmed_paragraphs), maxc)))
                 self._ui(lambda: self.simple_progress.setValue(0))
                 self._ui(lambda: self.simple_status.setText("Generating AI video clips..."))
                 from runway import generate_video_from_prompt
                 clips = []
-                for idx, para in enumerate(paragraphs):
+                for idx, para in enumerate(trimmed_paragraphs):
                     if idx >= maxc:
                         break
                     clip = await generate_video_from_prompt(para[:600], secs)
@@ -416,17 +440,17 @@ class MainApp(QWidget):
                 self._ui(lambda: self.simple_status.setText("Done."))
                 return
 
-            if paragraphs:
+            if trimmed_paragraphs:
                 # Generate dialog (TTS)
                 self._ui(lambda: self.simple_progress.setVisible(True))
                 self._ui(lambda: self.simple_progress.setMaximum(3))
                 self._ui(lambda: self.simple_progress.setValue(0))
                 self._ui(lambda: self.simple_status.setText("Generating dialog (TTS)..."))
-                await get_dialog_tracks(paragraphs[1::2], xi_key, voice_id)
+                await get_dialog_tracks(dialog_lines[:pair_count], xi_key, voice_id)
                 self._ui(lambda: self.simple_progress.setValue(1))
                 # Generate images for description paragraphs
                 self._ui(lambda: self.simple_status.setText("Generating images..."))
-                await generate_images(paragraphs[0::2], pos_prompt, neg_prompt, st_key, seed_val)
+                await generate_images(image_lines[:pair_count], pos_prompt, neg_prompt, st_key, seed_val)
                 self._ui(lambda: self.simple_progress.setValue(2))
                 # Compile
                 self._ui(lambda: self.simple_status.setText("Compiling final video..."))
@@ -442,7 +466,7 @@ class MainApp(QWidget):
                     self._ui(lambda: self.simple_status.setText(f"Error reading outputs: {e}"))
                     self._ui(lambda: self.simple_progress.setVisible(False))
                     return
-                create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+                create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", trimmed_paragraphs, "./final_video.mp4")
                 self._ui(lambda: self.simple_progress.setValue(3))
                 self._ui(lambda: self.simple_progress.setVisible(False))
                 self._ui(lambda: self.simple_status.setText("Done."))
