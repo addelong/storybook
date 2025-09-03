@@ -53,7 +53,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
 
     # Enforce matching counts before starting any ffmpeg work
     if len(image_files) != len(dialog_files) or len(dialog_texts) != len(dialog_files):
-        raise ValueError(f"Counts must match exactly. Images={len(image_files)} Dialogs={len(dialog_files)} ScriptLines={len(dialog_texts)}")
+        raise ValueError(f"Counts must match exactly. Images={len(image_files)} Dialogs={len(dialog_files)} DialogLines={len(dialog_texts)}")
 
     if len(image_files) != len(dialog_files):
         raise ValueError("Mismatch in the number of images and dialog files. Aborting compile.")

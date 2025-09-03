@@ -325,7 +325,18 @@ class MainApp(QWidget):
         def advance_done():
             self._ui(lambda: self.simple_progress.setVisible(False))
             self._ui(lambda: self.simple_status.setText("Done."))
-        worker = self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+        # Pass only dialog lines to composer
+        dialog_lines = paragraphs[1::2]
+        # Validate script dialog count vs files
+        try:
+            dialogs = sorted([f for f in os.listdir("./out/dialog") if f.endswith("mp3")])
+            if len(dialog_lines) != len(dialogs):
+                QMessageBox.critical(self, "Compile error", f"Script has {len(dialog_lines)} dialog lines but {len(dialogs)} dialog files exist. They must match exactly.")
+                self._ui(lambda: self.simple_progress.setVisible(False))
+                return
+        except Exception:
+            pass
+        worker = self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", dialog_lines, "./final_video.mp4")
         try:
             worker.finished.connect(advance_done)
         except Exception:
@@ -466,7 +477,8 @@ class MainApp(QWidget):
                     self._ui(lambda: self.simple_status.setText(f"Error reading outputs: {e}"))
                     self._ui(lambda: self.simple_progress.setVisible(False))
                     return
-                create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", trimmed_paragraphs, "./final_video.mp4")
+                # Pass dialog lines only to composer
+                create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", dialog_lines[:pair_count], "./final_video.mp4")
                 self._ui(lambda: self.simple_progress.setValue(3))
                 self._ui(lambda: self.simple_progress.setVisible(False))
                 self._ui(lambda: self.simple_status.setText("Done."))
