@@ -22,7 +22,7 @@ async def generate_dialog_track(text_chunk, idx, elevenlabs_api_key, voice_model
         "xi-api-key": elevenlabs_api_key
     }
 
-    print(f"Making request to url: {url} with api key: {elevenlabs_api_key} and voice model id: {voice_model_id}")
+    # Avoid logging sensitive keys in stdout
 
     # Set the request payload
     payload = {
