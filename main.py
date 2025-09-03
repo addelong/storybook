@@ -207,6 +207,10 @@ class MainApp(QWidget):
         self.advanced_layout.addWidget(self.progress_bar)
         self.simple_status = QLabel("")
         self.layout.addWidget(self.simple_status)
+        # Simple Mode progress bar (visible even when Advanced is hidden)
+        self.simple_progress = QProgressBar()
+        self.simple_progress.setVisible(False)
+        self.layout.addWidget(self.simple_progress)
 
         self.layout.addWidget(self.advanced_container)
 
@@ -330,9 +334,9 @@ class MainApp(QWidget):
                 # Minimal runway path: 5s per clip, up to 12 clips (1 min)
                 secs = 5
                 maxc = 12
-                self._ui(lambda: self.progress_bar.setVisible(True))
-                self._ui(lambda: self.progress_bar.setMaximum(min(len(paragraphs), maxc)))
-                self._ui(lambda: self.progress_bar.setValue(0))
+                self._ui(lambda: self.simple_progress.setVisible(True))
+                self._ui(lambda: self.simple_progress.setMaximum(min(len(paragraphs), maxc)))
+                self._ui(lambda: self.simple_progress.setValue(0))
                 self._ui(lambda: self.simple_status.setText("Generating AI video clips..."))
                 from runway import generate_video_from_prompt
                 clips = []
@@ -342,11 +346,11 @@ class MainApp(QWidget):
                     clip = await generate_video_from_prompt(para[:600], secs)
                     if clip:
                         clips.append(clip)
-                    self._ui(lambda v=idx+1: self.progress_bar.setValue(v))
+                    self._ui(lambda v=idx+1: self.simple_progress.setValue(v))
                 if clips:
                     from video import concat_runway_clips
                     concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
-                self._ui(lambda: self.progress_bar.setVisible(False))
+                self._ui(lambda: self.simple_progress.setVisible(False))
                 self._ui(lambda: self.simple_status.setText("Done."))
                 return
 
