@@ -199,6 +199,8 @@ class MainApp(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
         self.advanced_layout.addWidget(self.progress_bar)
+        self.simple_status = QLabel("")
+        self.layout.addWidget(self.simple_status)
 
         self.layout.addWidget(self.advanced_container)
 
@@ -299,6 +301,8 @@ class MainApp(QWidget):
                 gen = await generate_story(idea)
                 story_text = gen or idea
                 self._ui(lambda s=story_text: self.story_text.setText(s))
+                self._ui(lambda: self.show_script_checkbox.setChecked(True))
+                self._ui(lambda: self.story_text.setReadOnly(True))
 
             paragraphs = story_text.split("\n\n") if story_text else []
             # Derive seed from story for stable character consistency
@@ -323,6 +327,7 @@ class MainApp(QWidget):
                 self._ui(lambda: self.progress_bar.setVisible(True))
                 self._ui(lambda: self.progress_bar.setMaximum(min(len(paragraphs), maxc)))
                 self._ui(lambda: self.progress_bar.setValue(0))
+                self._ui(lambda: self.simple_status.setText("Generating AI video clips..."))
                 from runway import generate_video_from_prompt
                 clips = []
                 for idx, para in enumerate(paragraphs):
@@ -336,15 +341,20 @@ class MainApp(QWidget):
                     from video import concat_runway_clips
                     concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
                 self._ui(lambda: self.progress_bar.setVisible(False))
+                self._ui(lambda: self.simple_status.setText("Done."))
                 return
 
             if paragraphs:
                 # Generate dialog (TTS)
+                self._ui(lambda: self.simple_status.setText("Generating dialog (TTS)..."))
                 await get_dialog_tracks(paragraphs[1::2], xi_key, voice_id)
                 # Generate images for description paragraphs
+                self._ui(lambda: self.simple_status.setText("Generating images..."))
                 await generate_images(paragraphs[0::2], pos_prompt, neg_prompt, st_key, seed_val)
                 # Compile
+                self._ui(lambda: self.simple_status.setText("Compiling final video..."))
                 create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+                self._ui(lambda: self.simple_status.setText("Done."))
         self.start_worker(run)
 
     def auto_music(self):

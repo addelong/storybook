@@ -49,7 +49,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
                         key=extract_number)
 
     if len(image_files) != len(dialog_files):
-        raise ValueError("Mismatch in the number of images and dialog files")
+        print("Warning: Mismatch in the number of images and dialog files; proceeding with the shortest set.")
 
     with open(temp_concat_file, "w") as concat_file:
         for i, (image, dialog, text) in enumerate(zip(image_files, dialog_files, dialog_texts)):
