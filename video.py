@@ -52,7 +52,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
                         key=extract_number)
 
     if len(image_files) != len(dialog_files):
-        print("Warning: Mismatch in the number of images and dialog files; proceeding with the shortest set.")
+        raise ValueError("Mismatch in the number of images and dialog files. Aborting compile.")
 
     created_segments = []
     with open(temp_concat_file, "w") as concat_file:
@@ -229,10 +229,10 @@ def concat_runway_clips(clips: List[str], background_music: str, output_video: s
         "-y", temp_video_file
     ])
 
-    cmd = 'ffprobe -i {} -show_entries format=duration -v quiet -of csv="p=0"'.format(background_music)
-    bg_music_duration = subprocess.check_output(cmd).decode().strip()
-    cmd = 'ffprobe -i {} -show_entries format=duration -v quiet -of csv="p=0"'.format(temp_video_file)
-    video_duration = subprocess.check_output(cmd).decode().strip()
+    cmd_bgm = ["ffprobe","-i",background_music,"-show_entries","format=duration","-v","quiet","-of","csv=p=0"]
+    bg_music_duration = subprocess.check_output(cmd_bgm).decode().strip()
+    cmd_vid = ["ffprobe","-i",temp_video_file,"-show_entries","format=duration","-v","quiet","-of","csv=p=0"]
+    video_duration = subprocess.check_output(cmd_vid).decode().strip()
     num_loops = math.ceil(float(video_duration) / float(bg_music_duration))
 
     subprocess.call([

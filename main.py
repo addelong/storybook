@@ -2,6 +2,7 @@ import sys
 import asyncio
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar, QCheckBox
 import os
+import subprocess
 import hashlib
 from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal, QTimer
 
@@ -186,6 +187,12 @@ class MainApp(QWidget):
         self.buttons_layout.addWidget(self.generate_images_button)
         self.buttons_layout.addWidget(self.compile_video_button)
         self.buttons_layout.addWidget(self.runway_toggle)
+        # Preview subtitles only
+        self.preview_subs_checkbox = QCheckBox("Preview subtitles only")
+        self.preview_subs_button = QPushButton("Preview")
+        self.preview_subs_button.clicked.connect(self.preview_subtitles)
+        self.advanced_layout.addWidget(self.preview_subs_checkbox)
+        self.advanced_layout.addWidget(self.preview_subs_button)
         # Advanced flow guidance and step buttons
         self.advanced_layout.addWidget(QLabel("Advanced flow: 1) Generate Dialog → 2) Generate Images → 3) Compile Video"))
         self.advanced_layout.addLayout(self.buttons_layout)
@@ -355,6 +362,36 @@ class MainApp(QWidget):
                 self._ui(lambda: self.simple_status.setText("Compiling final video..."))
                 create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
                 self._ui(lambda: self.simple_status.setText("Done."))
+        self.start_worker(run)
+
+    def preview_subtitles(self):
+        story = self.story_text.toPlainText().strip()
+        if not self.preview_subs_checkbox.isChecked() or not story:
+            return
+        paragraphs = story.split("\n\n")
+        async def run():
+            # Render quick preview using the first 3-5 dialog lines over a neutral background
+            from tempfile import TemporaryDirectory
+            import shutil
+            lines = paragraphs[1::2][:5]
+            with TemporaryDirectory() as tmp:
+                concat_path = os.path.join(tmp, "concat_list.txt")
+                entries = []
+                for i, line in enumerate(lines):
+                    seg = os.path.join(tmp, f"pv_{i}.mp4")
+                    text = line.replace("'", "''")
+                    subprocess.call([
+                        "ffmpeg","-f","lavfi","-i","color=c=black:s=768x1344:d=3","-vf",
+                        f"drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{text}':fontcolor=white:fontsize=40:x=(w-tw)/2:y=h-260, drawbox=y=ih-220:color=black@0.6:t=fill:width=iw-160:height=180:x=80",
+                        "-y",seg
+                    ])
+                    entries.append(f"file '{seg}'\n")
+                with open(concat_path,"w") as f:
+                    f.writelines(entries)
+                preview = os.path.join(tmp, "preview.mp4")
+                subprocess.call(["ffmpeg","-f","concat","-safe","0","-i",concat_path,"-c","copy","-y",preview])
+                # Copy preview next to final
+                shutil.copyfile(preview, "./preview_subtitles.mp4")
         self.start_worker(run)
 
     def auto_music(self):
