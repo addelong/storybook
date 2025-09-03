@@ -448,6 +448,9 @@ class MainApp(QWidget):
                         self._ui(lambda m=music: self.bgm_file.setText(m))
                 except Exception:
                     pass
+            # Fallback to existing bgmusic.mp3 if present
+            if not music and os.path.exists("./bgmusic.mp3"):
+                music = "./bgmusic.mp3"
 
             if use_runway and trimmed_paragraphs:
                 # Minimal runway path: 5s per clip, up to 12 clips (1 min)

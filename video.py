@@ -38,12 +38,12 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
     temp_music_file = "temp_music.mp3"
     prepend_video_clip = "intro.mp4"
 
-    # Prepare background music reference if provided
+    # Prepare background music reference if provided or use fallback
     if background_music and os.path.exists(background_music):
         subprocess.call(["cp", background_music, "./bgmusic.mp3"])
         background_music = "./bgmusic.mp3"
     else:
-        background_music = None
+        background_music = "./bgmusic.mp3" if os.path.exists("./bgmusic.mp3") else None
 
     image_files = sorted([f for f in os.listdir(images_directory) if f.endswith(image_extension)],
                         key=extract_number)
@@ -87,8 +87,8 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
 
             segment_frames = int(segment_duration * 30)
 
-            # Pre-process text to add line breaks if necessary
-            wrapped_text = insert_line_breaks(text, max_line_length=48)
+            # Pre-process text to add line breaks if necessary (slightly wider)
+            wrapped_text = insert_line_breaks(text, max_line_length=56)
 
 
             subprocess.call([
@@ -106,7 +106,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-t", str(segment_duration),  # Updated duration
             # add this to the end of the following line to add text to the video
             # , drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=120, drawtext=fontfile=/WINDOWS/fonts/ITCKRIST.TTF:text='{wrapped_text}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-240+(lh-10)
-            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-200:color=black@0.35:t=fill:width=iw-160:height=160:x=80, drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{wrapped_text}':fontcolor=white:fontsize=30:x=(w-tw)/2:y=h-200+(lh-20)",
+            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-150:color=black@0.35:t=fill:width=iw-120:height=150:x=60, drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{wrapped_text}':fontcolor=white:fontsize=30:x=(w-tw)/2:y=h-150+(lh-18)",
             # Make dialog louder relative to bgm later by normalizing per segment
             "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000},volume=1.35",
             "-y", segment_file
