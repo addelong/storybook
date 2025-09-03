@@ -57,9 +57,13 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
 
             # Get duration of the dialog file
             try:
-                cmd = 'ffprobe -i {} -show_entries format=duration -v quiet -of csv="p=0"'.format(dialog_directory + "/" + dialog)
-
-                dialog_duration = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode().strip()
+                cmd_list = [
+                    "ffprobe", "-i", dialog_directory + "/" + dialog,
+                    "-show_entries", "format=duration",
+                    "-v", "quiet",
+                    "-of", "csv=p=0",
+                ]
+                dialog_duration = subprocess.check_output(cmd_list, stderr=subprocess.STDOUT).decode().strip()
             except subprocess.CalledProcessError as e:
                 print("Error:", e)
                 print("Command output:", e.output.decode())
@@ -111,11 +115,21 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
     ])
 
     # Prepare background music
-    cmd = 'ffprobe -i {} -show_entries format=duration -v quiet -of csv="p=0"'.format(background_music)
-    bg_music_duration = subprocess.check_output(cmd).decode().strip()
+    cmd_bgm = [
+        "ffprobe", "-i", background_music,
+        "-show_entries", "format=duration",
+        "-v", "quiet",
+        "-of", "csv=p=0",
+    ]
+    bg_music_duration = subprocess.check_output(cmd_bgm).decode().strip()
 
-    cmd = 'ffprobe -i {} -show_entries format=duration -v quiet -of csv="p=0"'.format(temp_video_file)
-    video_duration = subprocess.check_output(cmd).decode().strip()
+    cmd_vid = [
+        "ffprobe", "-i", temp_video_file,
+        "-show_entries", "format=duration",
+        "-v", "quiet",
+        "-of", "csv=p=0",
+    ]
+    video_duration = subprocess.check_output(cmd_vid).decode().strip()
     num_loops = math.ceil(float(video_duration) / float(bg_music_duration))
 
     subprocess.call([
