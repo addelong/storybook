@@ -38,9 +38,12 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
     temp_music_file = "temp_music.mp3"
     prepend_video_clip = "intro.mp4"
 
-    # Copy background_music to ./bgmusic.mp3 to not have to worry about path separators
-    subprocess.call(["cp", background_music, "./bgmusic.mp3"])
-    background_music = "./bgmusic.mp3"
+    # Prepare background music reference if provided
+    if background_music and os.path.exists(background_music):
+        subprocess.call(["cp", background_music, "./bgmusic.mp3"])
+        background_music = "./bgmusic.mp3"
+    else:
+        background_music = None
 
     image_files = sorted([f for f in os.listdir(images_directory) if f.endswith(image_extension)],
                         key=extract_number)
@@ -51,6 +54,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
     if len(image_files) != len(dialog_files):
         print("Warning: Mismatch in the number of images and dialog files; proceeding with the shortest set.")
 
+    created_segments = []
     with open(temp_concat_file, "w") as concat_file:
         for i, (image, dialog, text) in enumerate(zip(image_files, dialog_files, dialog_texts)):
             segment_file = f"segment_{i}.mp4"
@@ -103,6 +107,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-y", segment_file
         ])
             concat_file.write(f"file '{segment_file}'\n")
+            created_segments.append(segment_file)
 
     # Concatenate all segments
     subprocess.call([
@@ -114,48 +119,57 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-y", temp_video_file
     ])
 
-    # Prepare background music
-    cmd_bgm = [
-        "ffprobe", "-i", background_music,
-        "-show_entries", "format=duration",
-        "-v", "quiet",
-        "-of", "csv=p=0",
-    ]
-    bg_music_duration = subprocess.check_output(cmd_bgm).decode().strip()
+    # Prepare background music (optional)
+    if background_music:
+        cmd_bgm = [
+            "ffprobe", "-i", background_music,
+            "-show_entries", "format=duration",
+            "-v", "quiet",
+            "-of", "csv=p=0",
+        ]
+        bg_music_duration = subprocess.check_output(cmd_bgm).decode().strip()
 
-    cmd_vid = [
-        "ffprobe", "-i", temp_video_file,
-        "-show_entries", "format=duration",
-        "-v", "quiet",
-        "-of", "csv=p=0",
-    ]
-    video_duration = subprocess.check_output(cmd_vid).decode().strip()
-    num_loops = math.ceil(float(video_duration) / float(bg_music_duration))
+        cmd_vid = [
+            "ffprobe", "-i", temp_video_file,
+            "-show_entries", "format=duration",
+            "-v", "quiet",
+            "-of", "csv=p=0",
+        ]
+        video_duration = subprocess.check_output(cmd_vid).decode().strip()
+        num_loops = math.ceil(float(video_duration) / float(bg_music_duration))
 
-    subprocess.call([
-        "ffmpeg",
-        "-stream_loop", str(num_loops),
-        "-i", background_music,
-        "-t", video_duration,
-        "-filter_complex", f"[0:a]volume=0.2,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
-        "-map", "[a]",
-        "-y", temp_music_file
-    ])
+        subprocess.call([
+            "ffmpeg",
+            "-stream_loop", str(num_loops),
+            "-i", background_music,
+            "-t", video_duration,
+            "-filter_complex", f"[0:a]volume=0.2,afade=t=in:st=0:d=2,afade=t=out:st={float(video_duration)-2}:d=2[a]",
+            "-map", "[a]",
+            "-y", temp_music_file
+        ])
 
-    # Combine video with background music using amix
-    subprocess.call([
-        "ffmpeg",
-        "-i", temp_video_file,
-        "-i", temp_music_file,
-        "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=3[a]",
-        "-map", "0:v",
-        "-map", "[a]",
-        "-c:v", "copy",
-        "-c:a", "aac",
-        "-b:a", "192k",  # Ensure a higher audio bitrate for the output
-        "-shortest",
-        "-y", temp_video_file_with_audio
-    ])
+        # Combine video with background music using amix
+        subprocess.call([
+            "ffmpeg",
+            "-i", temp_video_file,
+            "-i", temp_music_file,
+            "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=3[a]",
+            "-map", "0:v",
+            "-map", "[a]",
+            "-c:v", "copy",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-shortest",
+            "-y", temp_video_file_with_audio
+        ])
+    else:
+        # No background music; carry forward the original audio
+        subprocess.call([
+            "ffmpeg",
+            "-i", temp_video_file,
+            "-c", "copy",
+            "-y", temp_video_file_with_audio
+        ])
 
     overlay_video = "./overlay.mp4"
     overlay_duration = 5.5  # Duration of the overlay video in seconds
@@ -178,13 +192,18 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
      ])
 
     # Clean up temporary files
-    os.remove(temp_video_file)
-    os.remove(temp_video_file_with_audio)
-    os.remove(temp_concat_file)
-    # os.remove(temp_concat_file_2)
-    os.remove(temp_music_file)
-    for i in range(len(image_files)):
-        os.remove(f"segment_{i}.mp4")
+    for f in [temp_video_file, temp_video_file_with_audio, temp_concat_file, temp_music_file]:
+        try:
+            if os.path.exists(f):
+                os.remove(f)
+        except Exception:
+            pass
+    for seg in created_segments:
+        try:
+            if os.path.exists(seg):
+                os.remove(seg)
+        except Exception:
+            pass
 
 # Example usage:
 # create_video_from_images_and_dialogs("images", "jpg", "background.mp3", "dialogs", "mp3", "output.mp4")
