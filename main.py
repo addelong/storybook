@@ -1,6 +1,6 @@
 import sys
 import asyncio
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar, QCheckBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar, QCheckBox, QMessageBox
 import os
 import subprocess
 import hashlib
@@ -282,7 +282,29 @@ class MainApp(QWidget):
     def compile_video(self):
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
-        self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+        # Pre-check image/dialog counts to avoid runtime crash
+        try:
+            images = sorted([f for f in os.listdir("./out/images") if f.endswith("png")])
+            dialogs = sorted([f for f in os.listdir("./out/dialog") if f.endswith("mp3")])
+            if len(images) != len(dialogs):
+                QMessageBox.critical(self, "Compile error", f"Found {len(images)} images and {len(dialogs)} dialog files. They must match exactly.")
+                return
+        except Exception as e:
+            QMessageBox.critical(self, "Compile error", f"Could not read output folders: {e}")
+            return
+        # Show progress for Advanced compile as well
+        self._ui(lambda: self.simple_status.setText("Compiling final video..."))
+        self._ui(lambda: self.simple_progress.setVisible(True))
+        self._ui(lambda: self.simple_progress.setMaximum(len(paragraphs[1::2]) or 1))
+        self._ui(lambda: self.simple_progress.setValue(0))
+        def advance_done():
+            self._ui(lambda: self.simple_progress.setVisible(False))
+            self._ui(lambda: self.simple_status.setText("Done."))
+        worker = self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+        try:
+            worker.finished.connect(advance_done)
+        except Exception:
+            pass
 
     def generate_script(self):
         idea = self.prompt_input.text().strip()
