@@ -3,7 +3,7 @@ import asyncio
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar, QCheckBox
 import os
 import hashlib
-from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal
+from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal, QTimer
 
 # Import necessary functions from your other scripts
 from dialog import get_dialog_tracks
@@ -208,6 +208,12 @@ class MainApp(QWidget):
         self.setLayout(self.layout)
         self.setWindowTitle('Story to Video Converter')
 
+    def _ui(self, fn):
+        try:
+            QTimer.singleShot(0, fn)
+        except Exception:
+            pass
+
     def browse_music(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Select Background Music", "", "Audio Files (*.mp3 *.wav)")
         if filename:
@@ -270,34 +276,42 @@ class MainApp(QWidget):
             return
         async def run():
             script = await generate_story(idea)
-            self.story_text.setText(script)
+            self._ui(lambda: self.story_text.setText(script))
         self.start_worker(run)
 
     def make_video(self):
         idea = self.simple_idea_input.toPlainText().strip()
         use_runway = self.use_runway_checkbox.isChecked()
+        # Capture UI values on the main thread
+        story_text_initial = self.story_text.toPlainText().strip()
+        pos_prompt = self.image_text.toPlainText()
+        neg_prompt = self.image_negative_text.toPlainText()
+        st_key = self.api_keys['Stability API Key'].text()
+        xi_key = self.api_keys['ElevenLabs API Key'].text()
+        voice_id = self.api_keys['Voice Model ID'].text()
+        current_bgm = self.bgm_file.text().strip()
 
         async def run():
-            story_text = self.story_text.toPlainText().strip()
+            story_text = story_text_initial
             if not story_text and idea:
                 # Auto-generate script from idea
                 gen = await generate_story(idea)
                 story_text = gen or idea
-                self.story_text.setText(story_text)
+                self._ui(lambda s=story_text: self.story_text.setText(s))
 
             paragraphs = story_text.split("\n\n") if story_text else []
             # Derive seed from story for stable character consistency
             seed_val = int(hashlib.sha256((story_text or idea).encode("utf-8")).hexdigest()[:8], 16) if (story_text or idea) else None
 
             # Auto music attempt
-            music = self.bgm_file.text().strip()
+            music = current_bgm
             if not music:
                 try:
                     from music import find_thematic_track
                     track_path = await find_thematic_track(story_text or idea, jamendo_client_id)
                     if track_path:
                         music = track_path
-                        self.bgm_file.setText(music)
+                        self._ui(lambda m=music: self.bgm_file.setText(m))
                 except Exception:
                     pass
 
@@ -305,9 +319,9 @@ class MainApp(QWidget):
                 # Minimal runway path: 5s per clip, up to 12 clips (1 min)
                 secs = 5
                 maxc = 12
-                self.progress_bar.setVisible(True)
-                self.progress_bar.setMaximum(min(len(paragraphs), maxc))
-                self.progress_bar.setValue(0)
+                self._ui(lambda: self.progress_bar.setVisible(True))
+                self._ui(lambda: self.progress_bar.setMaximum(min(len(paragraphs), maxc)))
+                self._ui(lambda: self.progress_bar.setValue(0))
                 from runway import generate_video_from_prompt
                 clips = []
                 for idx, para in enumerate(paragraphs):
@@ -316,20 +330,20 @@ class MainApp(QWidget):
                     clip = await generate_video_from_prompt(para[:600], secs)
                     if clip:
                         clips.append(clip)
-                    self.progress_bar.setValue(idx + 1)
+                    self._ui(lambda v=idx+1: self.progress_bar.setValue(v))
                 if clips:
                     from video import concat_runway_clips
                     concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
-                self.progress_bar.setVisible(False)
+                self._ui(lambda: self.progress_bar.setVisible(False))
                 return
 
             if paragraphs:
                 # Generate dialog (TTS)
-                await get_dialog_tracks(paragraphs[1::2], self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
+                await get_dialog_tracks(paragraphs[1::2], xi_key, voice_id)
                 # Generate images for description paragraphs
-                await generate_images(paragraphs[0::2], self.image_text.toPlainText(), self.image_negative_text.toPlainText(), self.api_keys['Stability API Key'].text(), seed_val)
+                await generate_images(paragraphs[0::2], pos_prompt, neg_prompt, st_key, seed_val)
                 # Compile
-                create_video_from_images_and_dialogs("./out/images", "png", music if music else self.bgm_file.text(), "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+                create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
         self.start_worker(run)
 
     def auto_music(self):
@@ -348,7 +362,7 @@ class MainApp(QWidget):
         async def run():
             track_path = await find_thematic_track(story, jamendo_client_id)
             if track_path:
-                self.bgm_file.setText(track_path)
+                self._ui(lambda p=track_path: self.bgm_file.setText(p))
         self.start_worker(run)
 
     def generate_runway_clip(self):
@@ -357,7 +371,7 @@ class MainApp(QWidget):
             clip = await generate_video_from_prompt(prompt, 5)
             # No UI for preview; just place file if generated
             if clip:
-                self.bgm_label.setText("Background Music:")
+                self._ui(lambda: self.bgm_label.setText("Background Music:"))
         self.start_worker(run)
 
     def generate_runway_from_story(self):
@@ -375,11 +389,11 @@ class MainApp(QWidget):
             maxc = None
 
         async def run():
-            self.progress_bar.setVisible(True)
+            self._ui(lambda: self.progress_bar.setVisible(True))
             # Generate sequentially to track progress
             total = len(paragraphs) if maxc is None else min(len(paragraphs), maxc)
-            self.progress_bar.setMaximum(total)
-            self.progress_bar.setValue(0)
+            self._ui(lambda t=total: self.progress_bar.setMaximum(t))
+            self._ui(lambda: self.progress_bar.setValue(0))
             os.makedirs("./out/runway", exist_ok=True)
             clips = []
             for idx, para in enumerate(paragraphs):
@@ -400,11 +414,9 @@ class MainApp(QWidget):
                     except Exception:
                         pass
                 # Update progress
-                try:
-                    self.progress_bar.setValue(min(idx + 1, total))
-                except Exception:
-                    pass
+                self._ui(lambda v=min(idx+1, total): self.progress_bar.setValue(v))
             if not clips:
+                self._ui(lambda: self.progress_bar.setVisible(False))
                 return
             # auto-music if not set
             music = self.bgm_file.text().strip()
@@ -418,7 +430,7 @@ class MainApp(QWidget):
                     pass
             from video import concat_runway_clips
             concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
-            self.progress_bar.setVisible(False)
+            self._ui(lambda: self.progress_bar.setVisible(False))
         self.start_worker(run)
 
     def toggle_advanced(self, checked):
