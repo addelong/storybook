@@ -441,6 +441,7 @@ class MainApp(QWidget):
             if not music:
                 try:
                     from music import find_thematic_track
+                    self._ui(lambda: self.simple_status.setText("Selecting music..."))
                     track_path = await find_thematic_track(story_text or idea, jamendo_client_id)
                     if track_path:
                         music = track_path
@@ -468,6 +469,8 @@ class MainApp(QWidget):
                 if clips:
                     from video import concat_runway_clips
                     concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
+                self._ui(lambda: self.simple_progress.setRange(0, 1))
+                self._ui(lambda: self.simple_progress.setValue(1))
                 self._ui(lambda: self.simple_progress.setVisible(False))
                 self._ui(lambda: self.simple_status.setText("Done."))
                 return
@@ -500,6 +503,7 @@ class MainApp(QWidget):
                     return
                 # Pass dialog lines only to composer
                 create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", dialog_lines[:pair_count], "./final_video.mp4")
+                self._ui(lambda: self.simple_progress.setMaximum(3))
                 self._ui(lambda: self.simple_progress.setValue(3))
                 self._ui(lambda: self.simple_progress.setVisible(False))
                 self._ui(lambda: self.simple_status.setText("Done."))

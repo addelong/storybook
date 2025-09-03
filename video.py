@@ -188,6 +188,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-filter_complex",
         "[1:v]chromakey=0x00FF00:0.1:0.2,scale=iw*0.6:-2[overlay_faded];"  # Key out green and scale overlay smaller
         "[0:v][overlay_faded]overlay=(W-w)/2:(H-h)/2-220:eof_action=pass:format=auto;",  # Move overlay up to avoid subtitles
+        "-pix_fmt", "yuv420p",
         "-map", "0:a",
         "-c:v", "libx264",  # You might adjust this depending on your needs
         "-c:a", "aac",      # AAC is a widely compatible audio codec
