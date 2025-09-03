@@ -48,6 +48,17 @@ class MainApp(QWidget):
     def initUI(self):
         self.layout = QVBoxLayout()
 
+        # Build identifier (smoke test: always visible)
+        build_branch = "unknown"
+        build_hash = "unknown"
+        try:
+            build_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
+            build_hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
+        except Exception:
+            pass
+        self.build_label = QLabel(f"Build: {build_branch} @ {build_hash}")
+        self.layout.addWidget(self.build_label)
+
         # Simple Mode Header
         self.simple_layout = QHBoxLayout()
         self.simple_idea_input = QTextEdit()
@@ -220,7 +231,7 @@ class MainApp(QWidget):
 
         # Set main layout
         self.setLayout(self.layout)
-        self.setWindowTitle('Story to Video Converter')
+        self.setWindowTitle(f"Story to Video Converter — {build_branch} @ {build_hash}")
 
     def _ui(self, fn):
         try:
@@ -386,6 +397,16 @@ class MainApp(QWidget):
                 await generate_images(paragraphs[0::2], pos_prompt, neg_prompt, st_key, seed_val)
                 # Compile
                 self._ui(lambda: self.simple_status.setText("Compiling final video..."))
+                # Pre-check counts before compile to avoid crash on mismatch
+                try:
+                    images = sorted([f for f in os.listdir("./out/images") if f.endswith("png")])
+                    dialogs = sorted([f for f in os.listdir("./out/dialog") if f.endswith("mp3")])
+                    if len(images) != len(dialogs):
+                        self._ui(lambda: self.simple_status.setText(f"Error: {len(images)} images vs {len(dialogs)} dialogs. Aborting."))
+                        return
+                except Exception as e:
+                    self._ui(lambda: self.simple_status.setText(f"Error reading outputs: {e}"))
+                    return
                 create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
                 self._ui(lambda: self.simple_status.setText("Done."))
         self.start_worker(run)
