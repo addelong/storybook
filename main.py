@@ -347,6 +347,10 @@ class MainApp(QWidget):
                 self._ui(lambda s=story_text: self.story_text.setText(s))
                 self._ui(lambda: self.show_script_checkbox.setChecked(True))
                 self._ui(lambda: self.story_text.setReadOnly(True))
+            elif story_text:
+                # User provided a script; show it so they can see what will be used
+                self._ui(lambda: self.show_script_checkbox.setChecked(True))
+                self._ui(lambda: self.story_text.setReadOnly(True))
 
             paragraphs = story_text.split("\n\n") if story_text else []
             # Derive seed from story for stable character consistency
@@ -390,11 +394,16 @@ class MainApp(QWidget):
 
             if paragraphs:
                 # Generate dialog (TTS)
+                self._ui(lambda: self.simple_progress.setVisible(True))
+                self._ui(lambda: self.simple_progress.setMaximum(3))
+                self._ui(lambda: self.simple_progress.setValue(0))
                 self._ui(lambda: self.simple_status.setText("Generating dialog (TTS)..."))
                 await get_dialog_tracks(paragraphs[1::2], xi_key, voice_id)
+                self._ui(lambda: self.simple_progress.setValue(1))
                 # Generate images for description paragraphs
                 self._ui(lambda: self.simple_status.setText("Generating images..."))
                 await generate_images(paragraphs[0::2], pos_prompt, neg_prompt, st_key, seed_val)
+                self._ui(lambda: self.simple_progress.setValue(2))
                 # Compile
                 self._ui(lambda: self.simple_status.setText("Compiling final video..."))
                 # Pre-check counts before compile to avoid crash on mismatch
@@ -403,11 +412,15 @@ class MainApp(QWidget):
                     dialogs = sorted([f for f in os.listdir("./out/dialog") if f.endswith("mp3")])
                     if len(images) != len(dialogs):
                         self._ui(lambda: self.simple_status.setText(f"Error: {len(images)} images vs {len(dialogs)} dialogs. Aborting."))
+                        self._ui(lambda: self.simple_progress.setVisible(False))
                         return
                 except Exception as e:
                     self._ui(lambda: self.simple_status.setText(f"Error reading outputs: {e}"))
+                    self._ui(lambda: self.simple_progress.setVisible(False))
                     return
                 create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+                self._ui(lambda: self.simple_progress.setValue(3))
+                self._ui(lambda: self.simple_progress.setVisible(False))
                 self._ui(lambda: self.simple_status.setText("Done."))
         self.start_worker(run)
 
