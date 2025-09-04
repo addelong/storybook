@@ -209,16 +209,17 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-filter_complex",
         f"[1:v]chromakey=0x00FF00:0.1:0.2,scale=iw*0.6:-2[overlay_faded];"  # Key out green and scale overlay smaller
         f"[0:v][overlay_faded]overlay=(W-w)/2:(H-h)/2-220:eof_action=pass:format=auto[v];"  # Compose overlay
-        f"[v]fade=t=out:st={float(video_duration)-1.5}:d=1.5[vout]",  # Final fade to black
+        f"[v]fade=t=out:st={float(video_duration)-1.5}:d=1.5[vout];"  # Final fade to black
+        f"[0:a]afade=t=out:st={float(video_duration)-1.5}:d=1.5[aout]",  # Audio fade out
         "-pix_fmt", "yuv420p",
         "-map", "[vout]",
-        "-c:v", "libx264",  # You might adjust this depending on your needs
-        "-c:a", "aac",      # AAC is a widely compatible audio codec
+        "-map", "[aout]",
+        "-c:v", "libx264",
+        "-c:a", "aac",
         "-strict", "experimental",
-        "-r", "30",         # This sets the frame rate to 24 frames per second
-        "-af", f"afade=t=out:st={float(video_duration)-1.5}:d=1.5",
+        "-r", "30",
         "-y", output_video
-     ])
+    ])
 
     # Clean up temporary files
     for f in [temp_video_file, temp_video_file_with_audio, temp_concat_file, temp_music_file]:
