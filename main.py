@@ -1,6 +1,6 @@
 import sys
 import asyncio
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar, QCheckBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit, QFileDialog, QProgressBar, QCheckBox, QMessageBox
 import os
 import subprocess
 import hashlib
@@ -111,8 +111,9 @@ class MainApp(QWidget):
         # Image Generation Text Section (Optional)
         self.image_text = QTextEdit()
         self.image_negative_text = QTextEdit()
-        self.image_text.setText("beautiful, kid friendly, perfect quality, 3d animated movie still, pixar, digital art, color, coherent, uhd, detailed face, looks good, expressive, magical, ")
-        self.image_negative_text.setText("blurry, bad, sloppy, incoherent, weird faces, messed up, weird hands, too many limbs or digits, anatomically incorrect, unnatural or creepy facial expression, generic or overused design, inconsistent scale or proportions, maniacal smiling")
+        # Spooky/mystery default prompts for GUI shorts
+        self.image_text.setText("cinematic, eerie atmosphere, moody lighting, film still, high detail, nocturnal, fog, flashlight beam, moonlit shadows, analog grain, urban legend, cryptid presence implied, coherent, UHD")
+        self.image_negative_text.setText("blurry, low quality, cartoonish, childlike, cute, gore, dismemberment, excessive blood, incoherent, mangled hands, extra limbs, deformed faces, washed out, generic background")
         self.advanced_layout.addWidget(QLabel("Image Generation Prompt"))
         self.advanced_layout.addWidget(self.image_text)
         self.advanced_layout.addWidget(QLabel("Image Generation Negative Prompt"))
@@ -243,9 +244,16 @@ class MainApp(QWidget):
         # The first set is the image descriptions, and the second set is the dialog.
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
-        worker = self.start_worker(get_dialog_tracks, paragraphs, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
+        dialog_lines = paragraphs[1::2]
+        # Busy indicator
+        self._ui(lambda: self.simple_status.setText("Generating dialog (TTS)..."))
+        self._ui(lambda: self.simple_progress.setRange(0, 0))
+        self._ui(lambda: self.simple_progress.setVisible(True))
+        worker = self.start_worker(get_dialog_tracks, dialog_lines, self.api_keys['ElevenLabs API Key'].text(), self.api_keys['Voice Model ID'].text())
         try:
             worker.finished.connect(lambda: self.generate_images_button.setEnabled(True))
+            worker.finished.connect(lambda: self.simple_progress.setVisible(False))
+            worker.finished.connect(lambda: self.simple_status.setText("Dialog ready."))
         except Exception:
             pass
 
@@ -255,6 +263,7 @@ class MainApp(QWidget):
         # The first set is the image descriptions, and the second set is the dialog.
         story_text = self.story_text.toPlainText()
         paragraphs = story_text.split("\n\n")
+        image_lines = paragraphs[0::2]
         seed_text = self.seed_input.text().strip()
         seed_val = int(seed_text) if seed_text.isdigit() else None
         ref_path = self.ref_path.text().strip() or None
@@ -263,9 +272,13 @@ class MainApp(QWidget):
         except ValueError:
             strength_val = 0.7
         self.compile_video_button.setEnabled(False)
+        # Busy indicator
+        self._ui(lambda: self.simple_status.setText("Generating images..."))
+        self._ui(lambda: self.simple_progress.setRange(0, 0))
+        self._ui(lambda: self.simple_progress.setVisible(True))
         worker = self.start_worker(
             generate_images,
-            paragraphs,
+            image_lines,
             self.image_text.toPlainText(),
             self.image_negative_text.toPlainText(),
             self.api_keys['Stability API Key'].text(),
@@ -275,13 +288,34 @@ class MainApp(QWidget):
         )
         try:
             worker.finished.connect(lambda: self.compile_video_button.setEnabled(True))
+            worker.finished.connect(lambda: self.simple_progress.setVisible(False))
+            worker.finished.connect(lambda: self.simple_status.setText("Images ready."))
         except Exception:
             pass
 
     def compile_video(self):
         story = self.story_text.toPlainText()
         paragraphs = story.split("\n\n")
-        self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+        # Pre-check assets
+        try:
+            images = sorted([f for f in os.listdir("./out/images") if f.endswith("png")])
+            dialogs = sorted([f for f in os.listdir("./out/dialog") if f.endswith("mp3")])
+            if len(images) != len(dialogs):
+                QMessageBox.critical(self, "Compile error", f"Found {len(images)} images and {len(dialogs)} dialog files. They must match exactly.")
+                return
+        except Exception as e:
+            QMessageBox.critical(self, "Compile error", f"Could not read output folders: {e}")
+            return
+        dialog_lines = paragraphs[1::2]
+        self._ui(lambda: self.simple_status.setText("Compiling final video..."))
+        self._ui(lambda: self.simple_progress.setRange(0, max(1, len(dialog_lines))))
+        self._ui(lambda: self.simple_progress.setValue(0))
+        worker = self.start_worker(create_video_from_images_and_dialogs, "./out/images", "png", self.bgm_file.text(), "./out/dialog", "mp3", dialog_lines, "./final_video.mp4")
+        try:
+            worker.finished.connect(lambda: self.simple_progress.setVisible(False))
+            worker.finished.connect(lambda: self.simple_status.setText("Done."))
+        except Exception:
+            pass
 
     def generate_script(self):
         idea = self.prompt_input.text().strip()
@@ -356,14 +390,22 @@ class MainApp(QWidget):
 
             if paragraphs:
                 # Generate dialog (TTS)
+                self._ui(lambda: self.simple_progress.setVisible(True))
+                self._ui(lambda: self.simple_progress.setMaximum(3))
+                self._ui(lambda: self.simple_progress.setValue(0))
                 self._ui(lambda: self.simple_status.setText("Generating dialog (TTS)..."))
                 await get_dialog_tracks(paragraphs[1::2], xi_key, voice_id)
+                self._ui(lambda: self.simple_progress.setValue(1))
                 # Generate images for description paragraphs
                 self._ui(lambda: self.simple_status.setText("Generating images..."))
                 await generate_images(paragraphs[0::2], pos_prompt, neg_prompt, st_key, seed_val)
+                self._ui(lambda: self.simple_progress.setValue(2))
                 # Compile
                 self._ui(lambda: self.simple_status.setText("Compiling final video..."))
-                create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", paragraphs, "./final_video.mp4")
+                # Pass dialog lines only to composer
+                create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", paragraphs[1::2], "./final_video.mp4")
+                self._ui(lambda: self.simple_progress.setValue(3))
+                self._ui(lambda: self.simple_progress.setVisible(False))
                 self._ui(lambda: self.simple_status.setText("Done."))
         self.start_worker(run)
 
