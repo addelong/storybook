@@ -44,13 +44,25 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
         f"Topic/Prompt:\n{prompt}\n"
     )
 
-    resp = await client.chat.completions.create(
+    resp = await client.responses.create(
         model="gpt-5",
-        messages=[
+        input=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        temperature=0.7,
-        max_completion_tokens=1200,
+        max_output_tokens=1200,
     )
-    return resp.choices[0].message.content
+    # Prefer the convenience field when available
+    if hasattr(resp, "output_text") and resp.output_text:
+        return resp.output_text
+    # Fallback: concatenate structured output parts
+    try:
+        parts = []
+        for item in getattr(resp, "output", []) or []:
+            for c in getattr(item, "content", []) or []:
+                t = getattr(c, "text", None)
+                if t:
+                    parts.append(t)
+        return "".join(parts)
+    except Exception:
+        return ""
