@@ -28,6 +28,19 @@ def insert_line_breaks(text, max_line_length):
     wrapped_text += current_line.strip()
     return wrapped_text
 
+def escape_drawtext(text: str) -> str:
+    """Escape characters for ffmpeg drawtext.
+
+    According to ffmpeg docs, colon ':' and single quote '\'' must be escaped
+    when passing via filter args; backslashes should be doubled.
+    """
+    if text is None:
+        return ""
+    s = text.replace("\\", "\\\\")
+    s = s.replace(":", "\\:")
+    s = s.replace("'", "''")
+    return s
+
 def create_video_from_images_and_dialogs(images_directory, image_extension, background_music, dialog_directory, dialog_extension, dialog_texts, output_video):
 
     fade_in_duration = 1  # Fade-in duration in seconds
@@ -87,8 +100,9 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
 
             segment_frames = max(1, int(segment_duration * 30))
 
-            # Pre-process text to add line breaks if necessary (slightly wider)
+            # Pre-process text to add line breaks if necessary (slightly wider) and escape
             wrapped_text = insert_line_breaks(text, max_line_length=56)
+            safe_text = escape_drawtext(wrapped_text)
 
 
             rc = subprocess.call([
@@ -106,7 +120,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-t", str(segment_duration),  # Updated duration
             # add this to the end of the following line to add text to the video
             # , drawbox=y=ih-240:color=black@0.5:t=fill:width=iw:height=120, drawtext=fontfile=/WINDOWS/fonts/ITCKRIST.TTF:text='{wrapped_text}':fontcolor=white:fontsize=24:x=(w-tw)/2:y=h-240+(lh-10)
-            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-150:color=black@0.35:t=fill:width=iw-120:height=150:x=60, drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{wrapped_text}':fontcolor=white:fontsize=30:x=(w-tw)/2:y=h-150+(lh-18)",
+            "-vf", f"scale=4032:2304, zoompan=z='1+on/{segment_frames}*0.09':d={segment_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':fps=30:s=1344x768, fade=t=in:st=0:d={fade_in_duration}, fade=t=out:st={float(dialog_duration)+fade_in_duration-1}:d={segment_fade_out_duration}, drawbox=y=ih-150:color=black@0.35:t=fill:width=iw-120:height=150:x=60, drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='{safe_text}':fontcolor=white:fontsize=30:x=(w-tw)/2:y=h-150+(lh-18)",
             # Make dialog a bit louder relative to background music
             "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000},volume=1.6",
             "-y", segment_file
