@@ -44,25 +44,41 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
         f"Topic/Prompt:\n{prompt}\n"
     )
 
+    # Use Responses API with a single combined input string for maximum compatibility
+    combined_input = system + "\n\n" + user
     resp = await client.responses.create(
         model="gpt-5",
-        input=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
+        input=combined_input,
+        temperature=0.7,
         max_output_tokens=1200,
     )
     # Prefer the convenience field when available
     if hasattr(resp, "output_text") and resp.output_text:
         return resp.output_text
     # Fallback: concatenate structured output parts
+    # Structured fallbacks across SDK versions
     try:
-        parts = []
-        for item in getattr(resp, "output", []) or []:
-            for c in getattr(item, "content", []) or []:
-                t = getattr(c, "text", None)
+        data = resp.model_dump() if hasattr(resp, "model_dump") else None
+    except Exception:
+        data = None
+    if data:
+        # 1) output_text
+        if isinstance(data.get("output_text"), str) and data["output_text"]:
+            return data["output_text"]
+        # 2) output -> content -> text
+        out = data.get("output") or []
+        parts: list[str] = []
+        for item in out:
+            for c in (item.get("content") or []):
+                t = c.get("text")
                 if t:
                     parts.append(t)
-        return "".join(parts)
-    except Exception:
-        return ""
+        if parts:
+            return "".join(parts)
+        # 3) choices-style (if backend returned chat-like schema)
+        ch = data.get("choices") or []
+        if ch and isinstance(ch, list):
+            msg = (ch[0] or {}).get("message") or {}
+            if isinstance(msg.get("content"), str):
+                return msg["content"]
+    return ""
