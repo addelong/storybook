@@ -1,4 +1,7 @@
 import asyncio
+import os
+import json
+import datetime
 from openai import AsyncOpenAI
 from creds import openai_api_key
 
@@ -46,26 +49,44 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
 
     # Use Responses API with a single combined input string for maximum compatibility
     combined_input = system + "\n\n" + user
-    resp = await client.responses.create(
-        model="gpt-5",
-        input=combined_input,
-        temperature=0.7,
-        max_output_tokens=1200,
-    )
-    # Prefer the convenience field when available
+
+    log: dict = {
+        "ts": datetime.datetime.utcnow().isoformat() + "Z",
+        "model": "gpt-5",
+        "max_output_tokens": 1200,
+        "prompt_chars": len(prompt or ""),
+        "combined_input_chars": len(combined_input),
+    }
+
+    try:
+        resp = await client.responses.create(
+            model="gpt-5",
+            input=combined_input,
+            max_output_tokens=1200,
+        )
+    except Exception as e:
+        log["error"] = f"request_failed: {e}"
+        _write_story_log(log)
+        return ""
+
+    # Prefer convenience field
     if hasattr(resp, "output_text") and resp.output_text:
-        return resp.output_text
-    # Fallback: concatenate structured output parts
-    # Structured fallbacks across SDK versions
+        text_out = resp.output_text
+        log["output_text_chars"] = len(text_out)
+        _write_story_log(log, resp)
+        return text_out
+
+    # Fallback parse
     try:
         data = resp.model_dump() if hasattr(resp, "model_dump") else None
     except Exception:
         data = None
     if data:
-        # 1) output_text
         if isinstance(data.get("output_text"), str) and data["output_text"]:
-            return data["output_text"]
-        # 2) output -> content -> text
+            text_out = data["output_text"]
+            log["output_text_chars"] = len(text_out)
+            _write_story_log(log, resp)
+            return text_out
         out = data.get("output") or []
         parts: list[str] = []
         for item in out:
@@ -74,11 +95,36 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
                 if t:
                     parts.append(t)
         if parts:
-            return "".join(parts)
-        # 3) choices-style (if backend returned chat-like schema)
+            text_out = "".join(parts)
+            log["output_text_chars"] = len(text_out)
+            _write_story_log(log, resp)
+            return text_out
         ch = data.get("choices") or []
         if ch and isinstance(ch, list):
             msg = (ch[0] or {}).get("message") or {}
             if isinstance(msg.get("content"), str):
-                return msg["content"]
+                text_out = msg["content"]
+                log["output_text_chars"] = len(text_out)
+                _write_story_log(log, resp)
+                return text_out
+    log["error"] = "no_output_text"
+    _write_story_log(log, resp)
     return ""
+
+
+def _write_story_log(log: dict, resp_obj: object | None = None) -> None:
+    try:
+        os.makedirs("./out/logs", exist_ok=True)
+        payload = dict(log)
+        if resp_obj is not None:
+            try:
+                payload["response_dump"] = resp_obj.model_dump()  # type: ignore[attr-defined]
+            except Exception:
+                payload["response_str"] = str(resp_obj)
+        fname = log.get("ts", "log").replace(":", "").replace("-", "").replace("T", "_")
+        path = os.path.join("./out/logs", f"story_{fname}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        print(f"[story_gen] wrote log: {path}")
+    except Exception as e:
+        print(f"[story_gen] log failed: {e}")
