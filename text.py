@@ -61,8 +61,13 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
     try:
         resp = await client.responses.create(
             model="gpt-5",
-            input=combined_input,
+            input=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
             max_output_tokens=1200,
+            reasoning={"effort": "low"},
+            temperature=0.7,
         )
     except Exception as e:
         log["error"] = f"request_failed: {e}"
@@ -90,6 +95,13 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
         out = data.get("output") or []
         parts: list[str] = []
         for item in out:
+            # New schema: message items
+            if item.get("type") == "message":
+                for c in (item.get("content") or []):
+                    t = c.get("text") or c.get("content")
+                    if isinstance(t, str):
+                        parts.append(t)
+            # Older schema: content list with text
             for c in (item.get("content") or []):
                 t = c.get("text")
                 if t:
@@ -107,6 +119,25 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
                 log["output_text_chars"] = len(text_out)
                 _write_story_log(log, resp)
                 return text_out
+    # Final fallback: try a non-reasoning model via chat.completions
+    try:
+        cc = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            max_completion_tokens=1200,
+            temperature=0.7,
+        )
+        text_out = cc.choices[0].message.content if cc.choices else ""
+        if text_out:
+            log["fallback_model"] = "gpt-4o-mini"
+            log["output_text_chars"] = len(text_out)
+            _write_story_log(log)
+            return text_out
+    except Exception as e:
+        log["fallback_error"] = str(e)
     log["error"] = "no_output_text"
     _write_story_log(log, resp)
     return ""
