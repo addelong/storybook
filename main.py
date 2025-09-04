@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPu
 import os
 import subprocess
 import hashlib
-from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal, QTimer, QObject
 
 # Import necessary functions from your other scripts
 from dialog import get_dialog_tracks
@@ -15,6 +15,17 @@ from creds import jamendo_client_id
 from runway import generate_video_from_prompt, generate_clips_from_paragraphs
 from video import create_video_from_images_and_dialogs
 from creds import stability_api_key, elevenlabs_api_key, voice_model_id
+
+class UiBridge(QObject):
+    status = pyqtSignal(str)
+    progress_visible = pyqtSignal(bool)
+    progress_range = pyqtSignal(int, int)
+    progress_value = pyqtSignal(int)
+    set_script = pyqtSignal(str)
+    show_script = pyqtSignal(bool)
+    set_script_read_only = pyqtSignal(bool)
+    set_bgm = pyqtSignal(str)
+
 
 class Worker(QThread):
     finished = pyqtSignal()  # Signal to indicate the worker has finished
@@ -42,6 +53,7 @@ class Worker(QThread):
 class MainApp(QWidget):
     def __init__(self):
         super().__init__()
+        self.ui_bridge = UiBridge()
         self.initUI()
         self.active_workers = []  # Add this line to keep track of active workers
 
@@ -233,6 +245,16 @@ class MainApp(QWidget):
         self.setLayout(self.layout)
         self.setWindowTitle(f"Story to Video Converter — {build_branch} @ {build_hash}")
 
+        # Thread-safe UI updates via signals
+        self.ui_bridge.status.connect(self.simple_status.setText)
+        self.ui_bridge.progress_visible.connect(self.simple_progress.setVisible)
+        self.ui_bridge.progress_range.connect(self.simple_progress.setRange)
+        self.ui_bridge.progress_value.connect(self.simple_progress.setValue)
+        self.ui_bridge.set_script.connect(self.story_text.setText)
+        self.ui_bridge.show_script.connect(self.story_text.setVisible)
+        self.ui_bridge.set_script_read_only.connect(self.story_text.setReadOnly)
+        self.ui_bridge.set_bgm.connect(self.bgm_file.setText)
+
     def _ui(self, fn):
         try:
             QTimer.singleShot(0, fn)
@@ -382,13 +404,19 @@ class MainApp(QWidget):
 
         # Immediately show progress in Simple Mode
         if not story_text_initial and idea:
-            self._ui(lambda: self.simple_status.setText("Generating script..."))
-            self._ui(lambda: self.simple_progress.setRange(0, 0))
-            self._ui(lambda: self.simple_progress.setVisible(True))
+            try:
+                self.ui_bridge.status.emit("Generating script...")
+                self.ui_bridge.progress_range.emit(0, 0)
+                self.ui_bridge.progress_visible.emit(True)
+            except Exception:
+                pass
         else:
-            self._ui(lambda: self.simple_status.setText("Starting..."))
-            self._ui(lambda: self.simple_progress.setRange(0, 0))
-            self._ui(lambda: self.simple_progress.setVisible(True))
+            try:
+                self.ui_bridge.status.emit("Starting...")
+                self.ui_bridge.progress_range.emit(0, 0)
+                self.ui_bridge.progress_visible.emit(True)
+            except Exception:
+                pass
 
         async def run():
             story_text = story_text_initial
@@ -397,25 +425,37 @@ class MainApp(QWidget):
                 try:
                     gen = await generate_story(idea)
                 except Exception as e:
-                    self._ui(lambda: self.simple_status.setText(f"Script generation failed: {e}"))
-                    self._ui(lambda: self.simple_progress.setVisible(False))
+                    try:
+                        self.ui_bridge.status.emit(f"Script generation failed: {e}")
+                        self.ui_bridge.progress_visible.emit(False)
+                    except Exception:
+                        pass
                     return
                 story_text = (gen or "").strip()
                 if not story_text:
-                    self._ui(lambda: self.simple_status.setText("No script returned. Please try again or enter a script."))
-                    self._ui(lambda: self.simple_progress.setVisible(False))
+                    try:
+                        self.ui_bridge.status.emit("No script returned. Please try again or enter a script.")
+                        self.ui_bridge.progress_visible.emit(False)
+                    except Exception:
+                        pass
                     return
-                self._ui(lambda s=story_text: self.story_text.setText(s))
-                self._ui(lambda: self.show_script_checkbox.setChecked(True))
-                self._ui(lambda: self.story_text.setVisible(True))
-                self._ui(lambda: self.story_text.setReadOnly(True))
+                try:
+                    self.ui_bridge.set_script.emit(story_text)
+                    self.show_script_checkbox.setChecked(True)
+                    self.ui_bridge.show_script.emit(True)
+                    self.ui_bridge.set_script_read_only.emit(True)
+                except Exception:
+                    pass
                 # Save full generated script immediately
                 self._write_story_to_out(story_text)
             elif story_text:
                 # User provided a script; show it so they can see what will be used
-                self._ui(lambda: self.show_script_checkbox.setChecked(True))
-                self._ui(lambda: self.story_text.setVisible(True))
-                self._ui(lambda: self.story_text.setReadOnly(True))
+                try:
+                    self.show_script_checkbox.setChecked(True)
+                    self.ui_bridge.show_script.emit(True)
+                    self.ui_bridge.set_script_read_only.emit(True)
+                except Exception:
+                    pass
 
             paragraphs = story_text.split("\n\n") if story_text else []
             # Compute paired lines for generation; trim to the minimum to avoid mismatches
@@ -441,11 +481,17 @@ class MainApp(QWidget):
             if not music:
                 try:
                     from music import find_thematic_track
-                    self._ui(lambda: self.simple_status.setText("Selecting music..."))
+                    try:
+                        self.ui_bridge.status.emit("Selecting music...")
+                    except Exception:
+                        pass
                     track_path = await find_thematic_track(story_text or idea, jamendo_client_id)
                     if track_path:
                         music = track_path
-                        self._ui(lambda m=music: self.bgm_file.setText(m))
+                        try:
+                            self.ui_bridge.set_bgm.emit(music)
+                        except Exception:
+                            pass
                 except Exception:
                     pass
             # Fallback to existing bgmusic.mp3 if present
@@ -456,10 +502,13 @@ class MainApp(QWidget):
                 # Minimal runway path: 5s per clip, up to 12 clips (1 min)
                 secs = 5
                 maxc = 12
-                self._ui(lambda: self.simple_progress.setVisible(True))
-                self._ui(lambda: self.simple_progress.setMaximum(min(len(trimmed_paragraphs), maxc)))
-                self._ui(lambda: self.simple_progress.setValue(0))
-                self._ui(lambda: self.simple_status.setText("Generating AI video clips..."))
+                try:
+                    self.ui_bridge.progress_visible.emit(True)
+                    self.ui_bridge.progress_range.emit(0, min(len(trimmed_paragraphs), maxc))
+                    self.ui_bridge.progress_value.emit(0)
+                    self.ui_bridge.status.emit("Generating AI video clips...")
+                except Exception:
+                    pass
                 from runway import generate_video_from_prompt
                 clips = []
                 for idx, para in enumerate(trimmed_paragraphs):
@@ -468,51 +517,84 @@ class MainApp(QWidget):
                     clip = await generate_video_from_prompt(para[:600], secs)
                     if clip:
                         clips.append(clip)
-                    self._ui(lambda v=idx+1: self.simple_progress.setValue(v))
+                    try:
+                        self.ui_bridge.progress_value.emit(idx + 1)
+                    except Exception:
+                        pass
                 if clips:
                     from video import concat_runway_clips
                     concat_runway_clips(clips, music if music else clips[0], "./final_video.mp4")
-                self._ui(lambda: self.simple_progress.setRange(0, 1))
-                self._ui(lambda: self.simple_progress.setValue(1))
-                self._ui(lambda: self.simple_progress.setVisible(False))
-                self._ui(lambda: self.simple_status.setText("Done."))
+                try:
+                    self.ui_bridge.progress_range.emit(0, 1)
+                    self.ui_bridge.progress_value.emit(1)
+                    self.ui_bridge.progress_visible.emit(False)
+                    self.ui_bridge.status.emit("Done.")
+                except Exception:
+                    pass
                 return
 
             if trimmed_paragraphs:
                 # Generate dialog (TTS)
-                self._ui(lambda: self.simple_progress.setVisible(True))
-                self._ui(lambda: self.simple_progress.setMaximum(3))
-                self._ui(lambda: self.simple_progress.setValue(0))
-                self._ui(lambda: self.simple_status.setText("Generating dialog (TTS)..."))
+                try:
+                    self.ui_bridge.progress_visible.emit(True)
+                    self.ui_bridge.progress_range.emit(0, 3)
+                    self.ui_bridge.progress_value.emit(0)
+                    self.ui_bridge.status.emit("Generating dialog (TTS)...")
+                except Exception:
+                    pass
                 await get_dialog_tracks(dialog_lines[:pair_count], xi_key, voice_id)
-                self._ui(lambda: self.simple_progress.setValue(1))
+                try:
+                    self.ui_bridge.progress_value.emit(1)
+                except Exception:
+                    pass
                 # Generate images for description paragraphs
-                self._ui(lambda: self.simple_status.setText("Generating images..."))
+                try:
+                    self.ui_bridge.status.emit("Generating images...")
+                except Exception:
+                    pass
                 await generate_images(image_lines[:pair_count], pos_prompt, neg_prompt, st_key, seed_val)
-                self._ui(lambda: self.simple_progress.setValue(2))
+                try:
+                    self.ui_bridge.progress_value.emit(2)
+                except Exception:
+                    pass
                 # Compile
-                self._ui(lambda: self.simple_status.setText("Compiling final video..."))
+                try:
+                    self.ui_bridge.status.emit("Compiling final video...")
+                except Exception:
+                    pass
                 # Pre-check counts before compile to avoid crash on mismatch
                 try:
                     images = sorted([f for f in os.listdir("./out/images") if f.endswith("png")])
                     dialogs = sorted([f for f in os.listdir("./out/dialog") if f.endswith("mp3")])
                     if len(images) != len(dialogs):
-                        self._ui(lambda: self.simple_status.setText(f"Error: {len(images)} images vs {len(dialogs)} dialogs. Aborting."))
-                        self._ui(lambda: self.simple_progress.setVisible(False))
+                        try:
+                            self.ui_bridge.status.emit(f"Error: {len(images)} images vs {len(dialogs)} dialogs. Aborting.")
+                            self.ui_bridge.progress_visible.emit(False)
+                        except Exception:
+                            pass
                         return
                 except Exception as e:
-                    self._ui(lambda: self.simple_status.setText(f"Error reading outputs: {e}"))
-                    self._ui(lambda: self.simple_progress.setVisible(False))
+                    try:
+                        self.ui_bridge.status.emit(f"Error reading outputs: {e}")
+                        self.ui_bridge.progress_visible.emit(False)
+                    except Exception:
+                        pass
                     return
                 # Pass dialog lines only to composer
                 create_video_from_images_and_dialogs("./out/images", "png", music if music else current_bgm, "./out/dialog", "mp3", dialog_lines[:pair_count], "./final_video.mp4")
-                self._ui(lambda: self.simple_progress.setMaximum(3))
-                self._ui(lambda: self.simple_progress.setValue(3))
-                self._ui(lambda: self.simple_progress.setVisible(False))
-                self._ui(lambda: self.simple_status.setText("Done."))
+                try:
+                    self.ui_bridge.progress_range.emit(0, 3)
+                    self.ui_bridge.progress_value.emit(3)
+                    self.ui_bridge.progress_visible.emit(False)
+                    self.ui_bridge.status.emit("Done.")
+                except Exception:
+                    pass
             else:
                 # Nothing to do; hide spinner
-                self._ui(lambda: self.simple_progress.setVisible(False))
+                try:
+                    self.ui_bridge.progress_visible.emit(False)
+                except Exception:
+                    pass
         self.start_worker(run)
 
     def preview_subtitles(self):
