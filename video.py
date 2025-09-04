@@ -111,10 +111,12 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000},volume=1.6",
             "-y", segment_file
         ])
-            if rc != 0:
-                print(f"[video] segment build failed index={i} file={segment_file} rc={rc}")
-            concat_file.write(f"file '{segment_file}'\n")
-            created_segments.append(segment_file)
+            abs_seg = os.path.abspath(segment_file)
+            if rc != 0 or not os.path.exists(segment_file):
+                print(f"[video] segment build failed index={i} file={abs_seg} rc={rc}")
+            else:
+                concat_file.write(f"file '{abs_seg}'\n")
+                created_segments.append(segment_file)
 
     # Concatenate all segments (re-encode to ensure consistent timestamps across clips)
     subprocess.call([
@@ -123,6 +125,7 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
         "-safe", "0",
         "-i", temp_concat_file,
         "-fflags", "+genpts",
+        "-r", "30",
         "-c:v", "libx264",
         "-c:a", "aac",
         "-y", temp_video_file
