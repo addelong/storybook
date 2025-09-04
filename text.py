@@ -67,7 +67,6 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
             ],
             max_output_tokens=1200,
             reasoning={"effort": "low"},
-            temperature=0.7,
         )
     except Exception as e:
         log["error"] = f"request_failed: {e}"
