@@ -51,6 +51,6 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
             {"role": "user", "content": user},
         ],
         temperature=0.7,
-        max_tokens=1200,
+        max_completion_tokens=1200,
     )
     return resp.choices[0].message.content
