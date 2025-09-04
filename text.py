@@ -12,18 +12,24 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
         "- Image paragraphs (PROMPTS): 1-2 sentences used verbatim as prompts to an AI image generator for the NEXT dialog paragraph. They MUST be purely visual.\n"
         "  - No speech/quotes, feelings, intentions, backstory, or plot progression.\n"
         "  - Describe a single frozen moment that a camera could see (no motion verbs like 'presses', 'jumps', 'goes', 'begins to', 'returns').\n"
-        "  - Every image prompt must fully restate standalone context: consistent character names, SPECIES (e.g., squirrel, rabbit), age, clothing and colors, environment/location, time of day, lighting, mood, and camera framing (close-up, medium shot, wide).\n"
+        "  - Every image prompt must fully restate standalone context: character NAMES, SPECIES (e.g., squirrel, rabbit), age, clothing and colors, environment/location, time of day, lighting, mood, and camera framing (close-up, medium shot, wide).\n"
         "  - If characters are animals, keep them clearly anthropomorphic animals (not humans).\n"
         "  - Repetition is EXPECTED and REQUIRED across prompts to ensure independent generation and consistency.\n"
         "  - Maintain strict visual continuity across ALL image paragraphs: same characters, outfits, palette, art style, and environment unless explicitly changed by the story.\n"
         "  - Match the NEXT dialog paragraph precisely in subject and setting; do not invent new objects/places/characters.\n"
+        "  - Never use generic labels in image prompts (e.g., 'siblings', 'friends', 'kids'); always specify each character by species, name, outfit, and age.\n"
         "- Dialog paragraphs (STORY): 1-2 short lines of narrative or character speech. Keep all plot details and actions here (not in image paragraphs).\n"
         "- Keep it gentle, imaginative, and age-appropriate.\n\n"
-        "Example output format (do not label sections):\n"
-        "A small fox stands on a riverbank at dusk, fireflies drifting above the water. The forest glows with warm, mossy light.\n\n"
-        "\"Do you think the moon follows us?\" whispers Pip.\n\n"
-        "A wooden bridge curves over the river; lanterns sway softly in the breeze and reflect on the current.\n\n"
-        "\"Come on,\" says Mira, \"adventure is just across the bridge.\" Together, they walk across the bridge and into the forest.\n\n"
+        "Longer example (do not label sections; follow the exact pattern):\n"
+        "Medium shot, daytime, in a sunny backyard: LEO THE SQUIRREL (age 8, red cap, blue shorts) and MIA THE RABBIT (age 7, pink dress, yellow bow) stand on a wooden ladder leading to a blue-and-orange treehouse; soft warm sunlight through leaves; cheerful color palette; camera at eye level.\n\n"
+        "\"Wow, Mia, our secret treehouse!\" says Leo.\n\n"
+        "Interior of the treehouse, cozy wood walls: the round silver ELEVATOR DOOR with colorful buttons glows beside a small table holding a MAP; LEO THE SQUIRREL (red cap, blue shorts) and MIA THE RABBIT (pink dress, yellow bow) look toward the elevator; late-afternoon light through a window; medium-wide framing.\n\n"
+        "\"Do you think it really goes to the jungle?\" asks Mia.\n\n"
+        "Jungle doorway POV from inside elevator: lush green leaves and orange flowers outside; colorful parrots perched; LEO THE SQUIRREL (red cap, blue shorts) and MIA THE RABBIT (pink dress, yellow bow) visible from behind; bright dappled sunlight; wide shot.\n\n"
+        "\"Let’s explore the jungle first!\" says Leo.\n\n"
+        "Desert vista at sunset: golden dunes, cacti silhouettes; LEO THE SQUIRREL (red cap, blue shorts) and MIA THE RABBIT (pink dress, yellow bow) start a sandy mound decorated with seashells; warm rim light; medium-wide shot.\n\n"
+        "\"This sandcastle is huge!\" says Mia.\n\n"
+        "Candy mountain land: bright sugar hills, lollipop trees, chocolate river; LEO THE SQUIRREL (red cap, blue shorts) and MIA THE RABBIT (pink dress, yellow bow) at the base of a rainbow candy tower; soft pastel lighting; wide establishing shot.\n\n"
     )
 
     user = (
@@ -39,7 +45,7 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
     )
 
     resp = await client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-5",
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
