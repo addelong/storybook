@@ -1,8 +1,0 @@
-{
-  "ts": "2025-09-04T01:54:46.341636Z",
-  "model": "gpt-5",
-  "max_output_tokens": 1200,
-  "prompt_chars": 191,
-  "combined_input_chars": 4390,
-  "error": "request_failed: Error code: 400 - {'error': {'message': \"Unsupported parameter: 'temperature' is not supported with this model.\", 'type': 'invalid_request_error', 'param': 'temperature', 'code': None}}"
-}

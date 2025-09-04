@@ -53,7 +53,6 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
     log: dict = {
         "ts": datetime.datetime.utcnow().isoformat() + "Z",
         "model": "gpt-5",
-        "max_output_tokens": 1200,
         "prompt_chars": len(prompt or ""),
         "combined_input_chars": len(combined_input),
     }
@@ -65,7 +64,6 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            max_output_tokens=1200,
             reasoning={"effort": "low"},
         )
     except Exception as e:
@@ -126,7 +124,6 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            max_completion_tokens=1200,
             temperature=0.7,
         )
         text_out = cc.choices[0].message.content if cc.choices else ""

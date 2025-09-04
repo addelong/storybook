@@ -85,13 +85,13 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
                 segment_duration += 4  # Extend duration for the last image
                 segment_fade_out_duration += 2  # Extend fade-out duration for the last image
 
-            segment_frames = int(segment_duration * 30)
+            segment_frames = max(1, int(segment_duration * 30))
 
             # Pre-process text to add line breaks if necessary (slightly wider)
             wrapped_text = insert_line_breaks(text, max_line_length=56)
 
 
-            subprocess.call([
+            rc = subprocess.call([
             "ffmpeg",
             "-loop", "1",
             "-i", images_directory + "/" + image,
@@ -111,16 +111,20 @@ def create_video_from_images_and_dialogs(images_directory, image_extension, back
             "-af", f"adelay={fade_in_duration * 1000}|{fade_in_duration * 1000},volume=1.6",
             "-y", segment_file
         ])
+            if rc != 0:
+                print(f"[video] segment build failed index={i} file={segment_file} rc={rc}")
             concat_file.write(f"file '{segment_file}'\n")
             created_segments.append(segment_file)
 
-    # Concatenate all segments
+    # Concatenate all segments (re-encode to ensure consistent timestamps across clips)
     subprocess.call([
         "ffmpeg",
         "-f", "concat",
         "-safe", "0",
         "-i", temp_concat_file,
-        "-c", "copy",
+        "-fflags", "+genpts",
+        "-c:v", "libx264",
+        "-c:a", "aac",
         "-y", temp_video_file
     ])
 
