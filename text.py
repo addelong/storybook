@@ -26,13 +26,13 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
         "- Output validation: After generating each image/dialog pair, briefly self-validate visual alignment and narrative consistency. If a mismatch or error is found, self-correct before continuing.\n\n"
         "# Example (do not label sections, follow the exact alternating pattern)\n"
         "Medium shot, daytime, in a sunny backyard: LEO THE SQUIRREL (age 8, red cap, blue shorts) and MIA THE RABBIT (age 7, pink dress, yellow bow) stand on a wooden ladder leading to a blue-and-orange treehouse; soft warm sunlight through leaves; cheerful color palette; camera at eye level.\n\n"
-        "\"Wow, Mia, our secret treehouse!\" says Leo.\n\n"
+        "Leo steadies his breath, eyes bright with discovery. \"Wow, Mia, our secret treehouse!\"\n\n"
         "Interior of the treehouse, cozy wood walls: the round silver ELEVATOR DOOR with colorful buttons glows beside a small table holding a MAP; LEO THE SQUIRREL (red cap, blue shorts) and MIA THE RABBIT (pink dress, yellow bow) look toward the elevator; late-afternoon light through a window; medium-wide framing.\n\n"
-        "\"Do you think it really goes to the jungle?\" asks Mia.\n\n"
+        "Mia traces the glowing buttons, wondering aloud. \"Do you think it really goes to the jungle?\"\n\n"
         "Jungle doorway POV from inside elevator: lush green leaves and orange flowers outside; colorful parrots perched; LEO THE SQUIRREL (red cap, blue shorts) and MIA THE RABBIT (pink dress, yellow bow) visible from behind; bright dappled sunlight; wide shot.\n\n"
-        "\"Let's explore the jungle first!\" says Leo.\n\n"
+        "A warm breeze greets them as the door slides open. \"Let's explore the jungle first!\" says Leo.\n\n"
         "Desert vista at sunset: golden dunes, cacti silhouettes; LEO THE SQUIRREL (red cap, blue shorts) and MIA THE RABBIT (pink dress, yellow bow) start a sandy mound decorated with seashells; warm rim light; medium-wide shot.\n\n"
-        "\"This sandcastle is huge!\" says Mia.\n\n"
+        "Sand tickles their toes and they giggle at the size. \"This sandcastle is huge!\" says Mia.\n\n"
         "Candy mountain land: bright sugar hills, lollipop trees, chocolate river; LEO THE SQUIRREL (red cap, blue shorts) and MIA THE RABBIT (pink dress, yellow bow) at the base of a rainbow candy tower; soft pastel lighting; wide establishing shot.\n\n"
     )
 
