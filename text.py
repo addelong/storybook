@@ -15,9 +15,9 @@ async def generate_story(prompt: str, style: str = "spooky-shorts") -> str:
         "- Output validation: after each IMAGE/STORY pair, self-check visual alignment and continuity; if mismatched, correct before continuing.\n\n"
         "# Example (do not label sections; follow exact alternation)\n"
         "Nighttime, abandoned forest trail under a crescent moon: TEEN INVESTIGATOR JUNE (black hoodie, green backpack) aims a flashlight at mist between pines; breath visible, long shadows; medium shot.\n\n"
-        "The trail feels wrong tonight. June lowers her voice. \"You heard that too, right?\"\n\n"
+        "They pause as the woods swallow their footsteps; June keeps her voice low. \"You heard that too, right?\"\n\n"
         "Old wooden footbridge over a dark creek: footprints wet on the planks, a torn red scarf snagged on a nail; fireflies glimmer; low-angle, moody rim light.\n\n"
-        "Eli studies the prints. \"No way those are ours,\" he whispers, but keeps moving.\n\n"
+        "Eli counts the prints, uneasy but focused. \"No way those are ours,\" he breathes, and they move on.\n\n"
     )
 
     user = (
