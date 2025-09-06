@@ -10,7 +10,7 @@ client = AsyncOpenAI(api_key=openai_api_key)
 async def generate_story(prompt: str, style: str = "storybook") -> str:
     system = (
         "You are a children's screenwriter. Produce text in an exact, simple format:\n"
-        "- Alternate paragraphs: (1) Image Description, then (2) Dialog, and repeat.\n"
+        "- Alternate paragraphs: (1) Image Description, then (2) STORY paragraph, and repeat.\n"
         "- Separate each paragraph with a single blank line.\n"
         "- Image paragraphs (PROMPTS): 1-2 sentences used verbatim as prompts to an AI image generator for the NEXT dialog paragraph. They MUST be purely visual.\n"
         "  - No speech/quotes, feelings, intentions, backstory, or plot progression.\n"
@@ -19,9 +19,9 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
         "  - If characters are animals, keep them clearly anthropomorphic animals (not humans).\n"
         "  - Repetition is EXPECTED and REQUIRED across prompts to ensure independent generation and consistency.\n"
         "  - Maintain strict visual continuity across ALL image paragraphs: same characters, outfits, palette, art style, and environment unless explicitly changed by the story.\n"
-        "  - Match the NEXT dialog paragraph precisely in subject and setting; do not invent new objects/places/characters.\n"
+        "  - Match the NEXT STORY paragraph precisely in subject and setting; do not invent new objects/places/characters.\n"
         "  - Never use generic labels in image prompts (e.g., 'siblings', 'friends', 'kids'); always specify each character by species, name, outfit, and age.\n"
-        "- Dialog paragraphs (STORY): 1-2 short lines of narrative or character speech. Keep all plot details and actions here (not in image paragraphs).\n"
+        "- STORY paragraphs: 1-3 sentences of narrative prose and/or character speech. If all IMAGE paragraphs are removed, the concatenated STORY paragraphs must read as a complete, coherent story. Keep all plot details and actions here (not in image paragraphs).\n"
         "- Keep it gentle, imaginative, and age-appropriate.\n"
         "- Output validation: After generating each image/dialog pair, briefly self-validate visual alignment and narrative consistency. If a mismatch or error is found, self-correct before continuing.\n\n"
         "# Example (do not label sections, follow the exact alternating pattern)\n"
@@ -39,14 +39,14 @@ async def generate_story(prompt: str, style: str = "storybook") -> str:
     user = (
         f"# Story Generation Task\n"
         f"- Style: {style}\n"
-        f"- Write a short, self-contained story with AT LEAST 20 paragraphs total (10 image and 10 dialog), always alternating as above. The story must end with a dialog paragraph.\n"
-        f"- Image paragraphs are purely visual prompts, no story actions, speech, or emotions.\n"
-        f"- Dialog paragraphs include all narrative and plot progress.\n"
+        f"- Write a short, self-contained story with AT LEAST 20 paragraphs total (10 IMAGE and 10 STORY), always alternating as above. The story must end with a STORY paragraph.\n"
+        f"- IMAGE paragraphs are purely visual prompts, no story actions, speech, or emotions.\n"
+        f"- STORY paragraphs include all narrative and plot progress and may be prose and/or character dialogue.\n"
         f"- Visual identity and style must remain wholly consistent throughout (characters, names, ages, outfits, colors, environment, palette, and art style).\n"
-        f"- EVERY image paragraph must specify full standalone context for independent AI image generation, even to the point of repetition: character species/identity, outfits, colors, exact location, time of day, lighting, mood, and camera framing.\n"
+        f"- EVERY IMAGE paragraph must specify full standalone context for independent AI image generation, even to the point of repetition: character species/identity, outfits, colors, exact location, time of day, lighting, mood, and camera framing.\n"
         f"- Animal characters must always remain anthropomorphic animals.\n"
-        f"- Every image paragraph must directly depict content referenced in the NEXT dialog; do not introduce new elements.\n"
-        f"- Avoid generic backgrounds, and include important props mentioned in the dialog.\n"
+        f"- Every IMAGE paragraph must directly depict content referenced in the NEXT STORY paragraph; do not introduce new elements.\n"
+        f"- Avoid generic backgrounds, and include important props mentioned in the STORY.\n"
         f"Topic/Prompt:\n{prompt}\n"
     )
 
