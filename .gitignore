@@ -10,4 +10,4 @@ temp_music.mp3
 temp_video*.mp4
 concat_list.txt
 creds.py
-
+completions/
